@@ -49,7 +49,9 @@ stackwars/
 ├── index.html        # Juego multijugador en tiempo real (Firebase)
 ├── stack_wars_ep1_prompt.md   # Prompt completo para regenerar o ampliar el juego con IA
 ├── qr_sw.png                  # Código QR — https://edurag.org/sw
+├── cartas/                    # Cartas del juego
 └── README.md
+
 ```
 
 ---
