@@ -16,10 +16,12 @@
   --border: #2a3545; --text: #ffffff; --muted: #8899aa; --accent: #378ADD;
 }
 html, body { height: 100%; overflow: hidden; background: var(--bg); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  body { display: flex; justify-content: center; }
 
 /* ── SCREENS ─────────────────────────────────────────────── */
 .screen { display: none; flex-direction: column; height: 100vh; height: 100dvh; overflow-y: auto; background: var(--bg); }
 .screen.active { display: flex; }
+#screen-game, #screen-lobby, #screen-final { max-width: 480px; width: 100%; margin: 0 auto; }
 
 /* ── LOBBY ───────────────────────────────────────────────── */
 #screen-lobby { align-items: center; justify-content: center; padding: 2rem 1.5rem; gap: 1.2rem; }
@@ -83,7 +85,7 @@ html, body { height: 100%; overflow: hidden; background: var(--bg); font-family:
 
 /* ── STACK SLOTS ─────────────────────────────────────────── */
 .board-wrap { width: 100%; display: flex; justify-content: center; padding: 4px 0 0; }
-.board-svg { width: 100%; max-width: 320px; height: auto; overflow: visible; touch-action: manipulation; }
+.board-svg { width: 100%; max-width: 320px; height: auto; overflow: hidden; touch-action: manipulation; }
 .board-node { cursor: pointer; transition: opacity 0.15s; }
 .board-node:active { opacity: 0.75; }
 .board-node.inactive { cursor: default; }
@@ -414,6 +416,7 @@ let S = {
   myStack:{},         // {layer: cardId} — built locally
   selectedCard:null,  // card id currently selected in hand
   placedCards:new Set(), // card ids already placed (grey out)
+  forcedCards:new Set(), // card ids pre-placed by mission (locked, not in hand)
   justifyText:'',
 };
 
@@ -499,16 +502,29 @@ function startGame(room){
   S.myHand = me.hand;
   document.getElementById('panel-main').style.display='block';
   document.getElementById('panel-waiting').style.display='none';
-  resetLocalStack();
+  const round = room.round||0;
+  const mission = MISSIONS.find(m=>m.id===room.missions[round]);
+  resetLocalStack(mission);
   showScreen('screen-game');
   renderGame(room);
 }
 
-function resetLocalStack(){
+function resetLocalStack(mission){
   S.myStack={};
   S.selectedCard=null;
   S.placedCards=new Set();
   S.justifyText='';
+  // Pre-place forced cards: they appear on the board locked, not in hand
+  if(mission){
+    for(const r of mission.reqs){
+      if(r.forced){
+        S.myStack[r.layer] = r.forced;
+        S.placedCards.add(r.forced);
+        S.forcedCards = S.forcedCards||new Set();
+        S.forcedCards.add(r.forced);
+      }
+    }
+  }
 }
 
 // ── RENDER ────────────────────────────────────────────────
@@ -597,11 +613,18 @@ function renderBuildPhase(area, actions, room, mission, crisis, me, rival){
 }
 
 function stackCoversRequiredLayers(stack, mission, crisis){
-  // Crisis C07 blocks L2
   const l2blocked = crisis.id==='C07';
   return mission.reqs.every(r=>{
-    if(l2blocked && r.layer===2) return true; // waived
-    return !!stack[r.layer];
+    if(l2blocked && r.layer===2) return true; // L2 bloqueada por crisis — waived
+    if(stack[r.layer]) return true;           // carta colocada
+    // Si no hay carta de esta capa en la mano (ni disponible), permitir enviar igualmente
+    // La capa quedará vacía y puntuará 0, pero no debe bloquear el envío
+    const hasLayerAvailable = S.myHand.some(id=>{
+      if(S.forcedCards && S.forcedCards.has(id)) return false;
+      if(S.placedCards.has(id)) return false;
+      return cardById(id).layer === r.layer;
+    });
+    return !hasLayerAvailable; // si no hay carta disponible → se considera "resuelta" (vacía)
   });
 }
 
@@ -619,13 +642,23 @@ function renderStackSlots(stack, mission, crisis, interactive){
   // Positions: center=L2 (r=0), then L3(r=72), L4(r=112), L7(r=148)
   // For each required layer, compute angle positions evenly around the ring
   const CX=160, CY=160;
-  const layerRings = {2:0, 3:72, 4:112, 7:148};
+  const layerRings = {2:0, 3:58, 4:90, 7:120};
   // Count slots per layer for angle distribution
   const layerCounts = {};
   for(const r of mission.reqs){
     layerCounts[r.layer] = (layerCounts[r.layer]||0)+1;
   }
-  // Assign angle to each req in order
+  // Distribute nodes evenly around the board by layer order (interior→exterior)
+  // Each unique non-L2 layer gets its own base angle; L2 always goes to center
+  const uniqueLayers = [...new Set(mission.reqs.map(r=>r.layer).filter(l=>l!==2))]
+    .sort((a,b)=>(layerRings[a]||148)-(layerRings[b]||148));
+  const nUnique = uniqueLayers.length;
+  const layerBaseAngle = {};
+  // Center the arc at the top (-90°): angle = -90° - (n-1)*180°/n + i*360°/n
+  uniqueLayers.forEach((layer,i)=>{
+    layerBaseAngle[layer] = -Math.PI/2 - (nUnique-1)*Math.PI/nUnique + i*(2*Math.PI/nUnique);
+  });
+
   const layerIdx = {};
   const nodeData = mission.reqs.map(r=>{
     const layer = r.layer;
@@ -633,12 +666,20 @@ function renderStackSlots(stack, mission, crisis, interactive){
     layerIdx[layer] = idx+1;
     const count = layerCounts[layer];
     const ring = layerRings[layer]||148;
-    let angle;
-    if(layer===2){ angle=0; }
-    else if(count===1){ angle=-Math.PI/2; }
-    else { angle = -Math.PI/2 + (idx/(count)) * 2*Math.PI; }
-    const cx = ring===0 ? CX : CX + ring*Math.cos(angle);
-    const cy = ring===0 ? CY : CY + ring*Math.sin(angle);
+    let cx, cy;
+    if(ring===0){
+      cx=CX; cy=CY;
+    } else {
+      const base = layerBaseAngle[layer]||(-Math.PI/2);
+      let angle;
+      if(count===1){ angle=base; }
+      else {
+        const spread = Math.PI/3;
+        angle = base - spread/2 + (idx/(count-1))*spread;
+      }
+      cx = CX + ring*Math.cos(angle);
+      cy = CY + ring*Math.sin(angle);
+    }
     const card = stack[layer] ? cardById(stack[layer]) : null;
     const blocked = l2blocked && layer===2;
     return {layer,r,cx,cy,ring,card,blocked};
@@ -658,15 +699,13 @@ function renderStackSlots(stack, mission, crisis, interactive){
     svg += `<circle cx="${CX}" cy="${CY}" r="${ring}" fill="none" stroke="${LC[layer]}" stroke-width="0.6" stroke-dasharray="3 3" opacity="0.35"/>`;
   }
 
-  // Layer labels at top of each ring
-  const labelAngles = [-Math.PI*0.52, -Math.PI*0.62, -Math.PI*0.72];
-  let labelI=0;
+  // Layer labels: placed along ring at the base angle of that layer, 18px inside the ring edge
   for(const ring of rings){
     const layer = parseInt(Object.keys(layerRings).find(k=>layerRings[k]===ring));
-    const a = labelAngles[labelI++]||(-Math.PI/2);
-    const lx = CX + (ring-12)*Math.cos(a);
-    const ly = CY + (ring-12)*Math.sin(a);
-    svg += `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="middle" font-size="7" fill="${LC[layer]}" font-family="system-ui,sans-serif" font-weight="700" letter-spacing="0.06em" opacity="0.75">L${layer}</text>`;
+    const a = (layerBaseAngle[layer]!==undefined ? layerBaseAngle[layer] : -Math.PI/2) + Math.PI*0.30;
+    const lx = CX + (ring-18)*Math.cos(a);
+    const ly = CY + (ring-18)*Math.sin(a);
+    svg += `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="middle" font-size="7" fill="${LC[layer]}" font-family="system-ui,sans-serif" font-weight="700" letter-spacing="0.06em" opacity="0.7">L${layer}</text>`;
   }
 
   // Draw connector lines from center to outer nodes
@@ -701,20 +740,32 @@ function renderStackSlots(stack, mission, crisis, interactive){
         <text x="${cx.toFixed(1)}" y="${(cy+7).toFixed(1)}" text-anchor="middle" font-size="10" fill="#664444" font-family="system-ui,sans-serif">🔒</text>
       </g>`;
     } else if(hasCard){
-      // Filled node
-      svg += `<g class="board-node${pulseCls}" ${isInteractive?`onclick="placeCard(${layer})"`:''}>
-        <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${R+3}" fill="${LC[layer]}" opacity="0.12" class="${glowCls}"/>
-        <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${R}" fill="${LCbg[layer]}" stroke="${LC[layer]}" stroke-width="2"/>
+      // Filled node — check if it's a forced (locked) card
+      const isForced = S.forcedCards && S.forcedCards.has(card.id);
+      const lockBadge = isForced ? `<text x="${(cx+R-5).toFixed(1)}" y="${(cy-R+8).toFixed(1)}" text-anchor="middle" font-size="9" font-family="system-ui,sans-serif">🔒</text>` : '';
+      svg += `<g class="board-node inactive">
+        <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${R+3}" fill="${LC[layer]}" opacity="${isForced?'0.06':'0.12'}" class="${isForced?'':glowCls}"/>
+        <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${R}" fill="${LCbg[layer]}" stroke="${LC[layer]}" stroke-width="${isForced?'1.5':'2'}" stroke-dasharray="${isForced?'0':'0'}"/>
         <text x="${cx.toFixed(1)}" y="${(cy-6).toFixed(1)}" text-anchor="middle" font-size="7.5" fill="${LC[layer]}" font-family="system-ui,sans-serif" font-weight="700" letter-spacing="0.06em">L${layer}</text>
         <text x="${cx.toFixed(1)}" y="${(cy+5).toFixed(1)}" text-anchor="middle" font-size="${card.name.length>4?9.5:11}" fill="#ffffff" font-family="system-ui,sans-serif" font-weight="700">${card.name}</text>
-        <text x="${cx.toFixed(1)}" y="${(cy+16).toFixed(1)}" text-anchor="middle" font-size="7" fill="${LCdim[layer]}" font-family="system-ui,sans-serif">${scoreAttrs}</text>
+        <text x="${cx.toFixed(1)}" y="${(cy+16).toFixed(1)}" text-anchor="middle" font-size="7" fill="${LCdim[layer]}" font-family="system-ui,sans-serif">${isForced?'obligatorio':scoreAttrs}</text>
+        ${lockBadge}
       </g>`;
     } else {
-      // Empty slot
-      svg += `<g class="board-node${pulseCls}${isInteractive?'':'inactive'}" ${isInteractive?`onclick="placeCard(${layer})"`:''}>
-        <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${R}" fill="${LCbg[layer]}" stroke="${LC[layer]}" stroke-width="1.5" stroke-dasharray="${isInteractive?'4 3':'0'}"/>
-        <text x="${cx.toFixed(1)}" y="${(cy-5).toFixed(1)}" text-anchor="middle" font-size="7.5" fill="${LC[layer]}" font-family="system-ui,sans-serif" font-weight="700" letter-spacing="0.06em">L${layer}</text>
-        <text x="${cx.toFixed(1)}" y="${(cy+6).toFixed(1)}" text-anchor="middle" font-size="${isInteractive?16:11}" fill="${isInteractive?LC[layer]:'#2a3545'}" font-family="system-ui,sans-serif">${isInteractive?'+':'—'}</text>
+      // Empty slot — check if player has any card of this layer in hand
+      const hasLayerInHand = S.myHand.some(id=>{
+        if(S.forcedCards && S.forcedCards.has(id)) return false;
+        if(S.placedCards.has(id)) return false;
+        return cardById(id).layer===layer;
+      });
+      const canPlace = isInteractive && hasLayerInHand;
+      const pulseCls2 = canPlace ? ' slot-pulsing' : '';
+      const noCardMsg = isInteractive && !hasLayerInHand ? '✗' : (isInteractive ? '+' : '—');
+      const noCardColor = isInteractive && !hasLayerInHand ? '#445566' : (isInteractive ? LC[layer] : '#2a3545');
+      svg += `<g class="board-node${pulseCls2}${canPlace?'':'inactive'}" ${canPlace?`onclick="placeCard(${layer})"`:''}>
+        <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${R}" fill="${LCbg[layer]}" stroke="${LC[layer]}" stroke-width="1.5" stroke-dasharray="${canPlace?'4 3':'2 2'}" opacity="${canPlace?1:0.5}"/>
+        <text x="${cx.toFixed(1)}" y="${(cy-5).toFixed(1)}" text-anchor="middle" font-size="7.5" fill="${canPlace?LC[layer]:'#445566'}" font-family="system-ui,sans-serif" font-weight="700" letter-spacing="0.06em">L${layer}</text>
+        <text x="${cx.toFixed(1)}" y="${(cy+6).toFixed(1)}" text-anchor="middle" font-size="${canPlace?16:11}" fill="${noCardColor}" font-family="system-ui,sans-serif">${noCardMsg}</text>
       </g>`;
     }
   }
@@ -726,10 +777,11 @@ function renderStackSlots(stack, mission, crisis, interactive){
 function renderHand(mission, crisis){
   let html = '<div class="hand-grid">';
   for(const id of S.myHand){
+    // Forced cards are pre-placed on the board — never show in hand
+    if(S.forcedCards && S.forcedCards.has(id)) continue;
     const card = cardById(id);
     const placed = S.placedCards.has(id);
     const selected = S.selectedCard===id;
-    // Check crisis violation
     const violates = checkCrisisViolation(card, crisis);
     const cls = `hand-card hc-${lc(card.layer)}${selected?' selected':''}${placed?' placed':''}${violates&&!placed?' disabled':''}`;
     const valsHtml = mission.scoreAttrs.map(i=>`<span class="hcard-val highlight">${ATTR_SHORT[i]} ${card.vals[i]}</span>`).join('');
@@ -815,7 +867,13 @@ window.placeCard = function placeCard(layer){
 window.undoStack = function(){
   const layers = Object.keys(S.myStack).map(Number);
   if(!layers.length){ showToast('La pila está vacía'); return; }
-  const lastLayer = layers[layers.length-1];
+  // Find last non-forced layer
+  const undoLayer = [...layers].reverse().find(l=>{
+    const cid = S.myStack[l];
+    return !(S.forcedCards && S.forcedCards.has(cid));
+  });
+  if(undoLayer===undefined){ showToast('Solo quedan cartas obligatorias'); return; }
+  const lastLayer = undoLayer;
   const cardId = S.myStack[lastLayer];
   S.placedCards.delete(cardId);
   delete S.myStack[lastLayer];
@@ -1013,8 +1071,9 @@ async function nextRound(room, myScore, rivalScore, iWon, iLost, draw){
       round: nextRound, status:'finished'
     });
   } else {
-    // Reset for next round
-    resetLocalStack();
+    // Reset for next round — pre-place forced cards of the next mission
+    const nextMission = MISSIONS.find(m=>m.id===room.missions[nextRound]);
+    resetLocalStack(nextMission);
     await update(ref(db,`ep1rooms/${S.roomId}`),{
       'p1/wins':  (room.p1.wins||0)+(p1Won?1:0),
       'p2/wins':  (room.p2.wins||0)+(p2Won?1:0),
@@ -1048,7 +1107,7 @@ function showFinal(room){
 window.playAgain = function(){
   if(S.unsub) S.unsub();
   S={ roomId:null,playerNum:null,myName:'',rivalName:'',myWins:0,rivalWins:0,unsub:null,
-      myHand:[],myStack:{},selectedCard:null,placedCards:new Set(),justifyText:'' };
+      myHand:[],myStack:{},selectedCard:null,placedCards:new Set(),forcedCards:new Set(),justifyText:'' };
   document.getElementById('panel-main').style.display='block';
   document.getElementById('panel-waiting').style.display='none';
   document.getElementById('input-name').value='';
