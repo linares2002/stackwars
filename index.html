@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Stack Wars Episodio I</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+:root {
+  --c7: #378ADD; --c7bg: #E6F1FB; --c7dark: #0C447C; --c7mid: #B5D4F4;
+  --c4: #1D9E75; --c4bg: #E1F5EE; --c4dark: #085041; --c4mid: #9FE1CB;
+  --c3: #7F77DD; --c3bg: #EEEDFE; --c3dark: #26215C; --c3mid: #CECBF6;
+  --c2: #D85A30; --c2bg: #FAECE7; --c2dark: #4A1B0C; --c2mid: #F5C4B3;
+  --navy: #1a2a4a; --orange: #D85A30; --orange-bg: #FAECE7;
+  --bg: #0f1923; --surface: #1a2535; --surface2: #232f42;
+  --border: #2a3545; --text: #ffffff; --muted: #8899aa; --accent: #378ADD;
+}
+html, body { height: 100%; overflow: hidden; background: var(--bg); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+
+/* ── SCREENS ─────────────────────────────────────────────── */
+.screen { display: none; flex-direction: column; height: 100vh; height: 100dvh; overflow-y: auto; background: var(--bg); }
+.screen.active { display: flex; }
+
+/* ── LOBBY ───────────────────────────────────────────────── */
+#screen-lobby { align-items: center; justify-content: center; padding: 2rem 1.5rem; gap: 1.2rem; }
+.logo { text-align: center; }
+.logo h1 { font-size: 1.7rem; font-weight: 800; color: #fff; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1.1; }
+.logo .ep { font-size: 0.7rem; color: var(--orange); letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 4px; }
+.logo .sub { font-size: 0.72rem; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; margin-top: 5px; }
+.lobby-card { background: var(--surface); border-radius: 16px; padding: 1.4rem; width: 100%; max-width: 360px; border: 1px solid var(--border); }
+.lobby-card h2 { font-size: 0.95rem; font-weight: 600; color: #fff; margin-bottom: 1rem; }
+.input-group { margin-bottom: 0.9rem; }
+.input-group label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; display: block; margin-bottom: 5px; }
+.input-group input { width: 100%; padding: 11px 13px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; color: #fff; font-size: 1rem; font-family: inherit; outline: none; }
+.input-group input:focus { border-color: var(--accent); }
+.input-group input::placeholder { color: #445566; }
+.btn { width: 100%; padding: 13px; border-radius: 12px; border: none; font-size: 0.95rem; font-weight: 600; cursor: pointer; font-family: inherit; transition: opacity 0.15s, transform 0.1s; }
+.btn:active { transform: scale(0.97); opacity: 0.9; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-secondary { background: var(--surface); color: var(--muted); border: 1px solid var(--border); margin-top: 8px; }
+.btn-create { background: var(--c4); color: #fff; margin-bottom: 8px; }
+.btn-crisis { background: var(--orange); color: #fff; }
+.divider { text-align: center; color: #445566; font-size: 0.78rem; margin: 0.7rem 0; }
+.room-code-display { background: var(--bg); border-radius: 10px; padding: 1rem; text-align: center; border: 1px solid var(--border); margin-bottom: 1rem; }
+.room-code-display .label { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+.room-code-display .code { font-size: 2rem; font-weight: 700; color: #fff; letter-spacing: 0.3em; margin-top: 4px; }
+.waiting-msg { text-align: center; color: var(--muted); font-size: 0.82rem; margin-bottom: 1rem; }
+.dot-pulse { display: inline-flex; gap: 4px; vertical-align: middle; margin-left: 6px; }
+.dot-pulse span { width: 5px; height: 5px; border-radius: 50%; background: var(--muted); animation: pulse 1.2s infinite; }
+.dot-pulse span:nth-child(2) { animation-delay: 0.2s; }
+.dot-pulse span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes pulse { 0%,80%,100%{opacity:0.2} 40%{opacity:1} }
+.error-msg { color: var(--orange); font-size: 0.78rem; text-align: center; margin-top: 0.5rem; min-height: 1.2rem; }
+
+/* ── GAME HEADER ─────────────────────────────────────────── */
+.game-header { display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 1rem; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.game-header .player-name { font-size: 0.78rem; font-weight: 600; color: #fff; }
+.game-header .score { font-size: 0.7rem; color: var(--muted); }
+.game-header .round-info { font-size: 0.7rem; color: var(--muted); text-align: center; }
+.turn-badge { font-size: 0.68rem; padding: 3px 9px; border-radius: 20px; background: var(--accent); color: #fff; font-weight: 600; }
+.wait-badge { font-size: 0.68rem; padding: 3px 9px; border-radius: 20px; background: var(--surface2); color: var(--muted); }
+
+/* ── CRISIS BANNER ───────────────────────────────────────── */
+.crisis-banner { margin: 0.75rem 1rem 0; background: #2a1508; border: 1px solid var(--orange); border-radius: 12px; padding: 0.7rem 0.9rem; }
+.crisis-banner .crisis-title { font-size: 0.65rem; font-weight: 700; color: var(--orange); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 3px; }
+.crisis-banner .crisis-name { font-size: 0.85rem; font-weight: 700; color: #ffb89a; margin-bottom: 3px; }
+.crisis-banner .crisis-effect { font-size: 0.72rem; color: #cc7755; line-height: 1.4; }
+
+/* ── MISSION BANNER ──────────────────────────────────────── */
+.mission-banner { margin: 0.6rem 1rem 0; background: #0a1828; border: 1px solid var(--accent); border-radius: 12px; padding: 0.7rem 0.9rem; }
+.mission-banner .mission-title { font-size: 0.65rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 3px; }
+.mission-banner .mission-name { font-size: 0.85rem; font-weight: 700; color: #9ec8f4; margin-bottom: 4px; }
+.mission-banner .mission-reqs { display: flex; flex-direction: column; gap: 2px; }
+.mission-banner .req-line { font-size: 0.7rem; color: #7aadd4; line-height: 1.35; }
+.mission-banner .req-line strong { color: #b8d8f4; }
+.mission-banner .score-hint { font-size: 0.68rem; color: var(--muted); margin-top: 5px; }
+
+/* ── CARD AREA ───────────────────────────────────────────── */
+.card-area { flex: 1; padding: 0.75rem 1rem; overflow-y: auto; display: flex; flex-direction: column; gap: 0.65rem; }
+
+/* ── SECTION TITLE ───────────────────────────────────────── */
+.section-title { font-size: 0.68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: -0.2rem; }
+
+/* ── STACK SLOTS ─────────────────────────────────────────── */
+.board-wrap { width: 100%; display: flex; justify-content: center; padding: 4px 0 0; }
+.board-svg { width: 100%; max-width: 320px; height: auto; overflow: visible; touch-action: manipulation; }
+.board-node { cursor: pointer; transition: opacity 0.15s; }
+.board-node:active { opacity: 0.75; }
+.board-node.inactive { cursor: default; }
+@keyframes slot-pulse { 0%,100%{opacity:0.5} 50%{opacity:1} }
+.slot-pulsing { animation: slot-pulse 1.4s ease-in-out infinite; }
+@keyframes ring-glow { 0%,100%{opacity:0.6} 50%{opacity:1} }
+.ring-glow { animation: ring-glow 2s ease-in-out infinite; }
+
+/* ── HAND CARDS ──────────────────────────────────────────── */
+.hand-grid { display: flex; flex-direction: column; gap: 6px; }
+.hand-card { background: #fff; border-radius: 12px; overflow: hidden; cursor: pointer; transition: transform 0.12s, box-shadow 0.12s; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+.hand-card:active { transform: scale(0.98); }
+.hand-card.selected { box-shadow: 0 0 0 2.5px var(--accent), 0 2px 12px rgba(55,138,221,0.4); }
+.hand-card.disabled { opacity: 0.45; cursor: default; pointer-events: none; }
+.hand-card.placed { opacity: 0.35; cursor: default; pointer-events: none; }
+.hcard-inner { display: flex; align-items: center; padding: 8px 10px; gap: 8px; }
+.hcard-badge { font-size: 0.58rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; padding: 2px 7px; border-radius: 10px; white-space: nowrap; flex-shrink: 0; }
+.hcard-name { font-size: 0.95rem; font-weight: 700; color: #1a1a1a; flex: 1; }
+.hcard-vals { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
+.hcard-val { font-size: 0.62rem; font-weight: 600; padding: 1px 4px; border-radius: 4px; background: #f0f0f0; color: #555; }
+.hcard-val.highlight { background: #e8f5ee; color: #085041; }
+
+/* Layer colors for hand cards */
+.hc-l7 .hcard-badge { background: var(--c7mid); color: var(--c7dark); }
+.hc-l4 .hcard-badge { background: var(--c4mid); color: var(--c4dark); }
+.hc-l3 .hcard-badge { background: var(--c3mid); color: var(--c3dark); }
+.hc-l2 .hcard-badge { background: var(--c2mid); color: var(--c2dark); }
+
+/* ── CONFIRM / ACTION BUTTONS ────────────────────────────── */
+.action-area { padding: 0 1rem 0.75rem; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+.confirm-btn { padding: 13px; background: var(--accent); color: #fff; border: none; border-radius: 12px; font-size: 0.95rem; font-weight: 600; width: 100%; cursor: pointer; font-family: inherit; transition: opacity 0.15s; }
+.confirm-btn:disabled { opacity: 0.35; cursor: default; }
+.undo-btn { padding: 10px; background: var(--surface2); color: var(--muted); border: 1px solid var(--border); border-radius: 10px; font-size: 0.82rem; font-weight: 600; width: 100%; cursor: pointer; font-family: inherit; }
+
+/* ── WAITING OVERLAY ─────────────────────────────────────── */
+.waiting-overlay { padding: 1rem; text-align: center; }
+.waiting-overlay p { color: var(--muted); font-size: 0.85rem; }
+
+/* ── REVEAL SCREEN ───────────────────────────────────────── */
+.reveal-section { background: var(--surface); border-radius: 12px; padding: 0.9rem; }
+.reveal-section .rev-title { font-size: 0.68rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.6rem; }
+.reveal-stack { display: flex; flex-direction: column; gap: 6px; }
+.rev-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; border-radius: 8px; background: var(--surface2); }
+.rev-row .rev-layer { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; width: 28px; }
+.rev-row .rev-proto { font-size: 0.85rem; font-weight: 700; flex: 1; margin: 0 6px; }
+.rev-row .rev-score { font-size: 0.75rem; font-weight: 700; }
+.rev-row.win-row { background: #0c2216; }
+.rev-row.lose-row { background: #220c0c; opacity: 0.7; }
+.rev-row.neutral-row { }
+.rev-row.blocked-row { background: #1a0e0e; opacity: 0.5; }
+
+.result-banner { margin: 0; padding: 0.85rem 1rem; border-radius: 12px; text-align: center; }
+.result-banner.win { background: #0f2e1e; border: 1px solid var(--c4); }
+.result-banner.lose { background: #2e0f0f; border: 1px solid var(--orange); }
+.result-banner.draw { background: var(--surface); border: 1px solid #445566; }
+.result-banner .result-title { font-size: 1.05rem; font-weight: 700; margin-bottom: 3px; }
+.result-banner.win .result-title { color: var(--c4); }
+.result-banner.lose .result-title { color: var(--orange); }
+.result-banner.draw .result-title { color: var(--muted); }
+.result-banner .result-sub { font-size: 0.75rem; color: var(--muted); line-height: 1.4; }
+
+.next-btn { padding: 13px; background: var(--surface); color: #fff; border: 1px solid var(--border); border-radius: 12px; font-size: 0.95rem; font-weight: 600; width: 100%; cursor: pointer; font-family: inherit; }
+.next-btn:active { opacity: 0.8; }
+
+/* ── FINAL SCREEN ────────────────────────────────────────── */
+#screen-final { align-items: center; justify-content: center; padding: 2rem 1.5rem; gap: 1rem; }
+.final-card { background: var(--surface); border-radius: 16px; padding: 2rem 1.5rem; width: 100%; max-width: 360px; text-align: center; border: 1px solid var(--border); }
+.final-trophy { font-size: 3rem; margin-bottom: 0.5rem; }
+.final-result { font-size: 1.4rem; font-weight: 700; color: #fff; margin-bottom: 0.4rem; }
+.final-score { font-size: 0.88rem; color: var(--muted); margin-bottom: 1.4rem; }
+.final-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1.4rem; }
+.stat-box { background: var(--bg); border-radius: 10px; padding: 0.7rem; }
+.stat-box .stat-val { font-size: 1.4rem; font-weight: 700; color: #fff; }
+.stat-box .stat-label { font-size: 0.68rem; color: var(--muted); margin-top: 2px; }
+
+/* ── TOAST ───────────────────────────────────────────────── */
+.toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: var(--surface); color: #fff; padding: 9px 18px; border-radius: 20px; font-size: 0.82rem; border: 1px solid var(--border); z-index: 999; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; }
+.toast.show { opacity: 1; }
+
+/* ── JUSTIFY MODAL ───────────────────────────────────────── */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 100; display: none; align-items: flex-end; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal-box { background: var(--surface); border-radius: 20px 20px 0 0; padding: 1.5rem 1.5rem 2rem; width: 100%; max-width: 440px; border-top: 1px solid var(--border); }
+.modal-box h3 { font-size: 1rem; font-weight: 700; color: #fff; margin-bottom: 0.4rem; }
+.modal-box p { font-size: 0.8rem; color: var(--muted); margin-bottom: 1rem; line-height: 1.45; }
+.modal-box textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; color: #fff; font-family: inherit; font-size: 0.9rem; padding: 10px 12px; resize: none; height: 80px; outline: none; }
+.modal-box textarea:focus { border-color: var(--accent); }
+.modal-btns { display: flex; gap: 8px; margin-top: 10px; }
+.modal-btns .btn { flex: 1; padding: 12px; }
+</style>
+</head>
+<body>
+
+<!-- LOBBY -->
+<div id="screen-lobby" class="screen active">
+  <div class="logo">
+    <div class="ep">Episodio I</div>
+    <h1>Stack Wars</h1>
+    <div class="sub">La amenaza en la red</div>
+  </div>
+
+  <div class="lobby-card" id="panel-main">
+    <h2>Iniciar partida</h2>
+    <div class="input-group">
+      <label>Tu nombre</label>
+      <input type="text" id="input-name" placeholder="Ej: Jugador 1" maxlength="20" autocomplete="off">
+    </div>
+    <button class="btn btn-create" onclick="createRoom()">Crear sala</button>
+    <div class="divider">— o únete a una sala —</div>
+    <div class="input-group">
+      <label>Código de sala</label>
+      <input type="text" id="input-room" placeholder="XXXX" maxlength="4"
+             style="text-transform:uppercase;letter-spacing:0.2em;font-size:1.2rem" autocomplete="off">
+    </div>
+    <button class="btn btn-primary" onclick="joinRoom()">Unirse</button>
+    <div class="error-msg" id="error-msg"></div>
+  </div>
+
+  <div class="lobby-card" id="panel-waiting" style="display:none">
+    <h2>Sala creada</h2>
+    <div class="room-code-display">
+      <div class="label">Código de sala</div>
+      <div class="code" id="room-code-display">----</div>
+    </div>
+    <div class="waiting-msg">Esperando rival<div class="dot-pulse"><span></span><span></span><span></span></div></div>
+    <button class="btn btn-secondary" onclick="cancelRoom()">Cancelar</button>
+  </div>
+</div>
+
+<!-- GAME SCREEN -->
+<div id="screen-game" class="screen">
+  <div class="game-header">
+    <div>
+      <div class="player-name" id="hdr-myname">Tú</div>
+      <div class="score" id="hdr-myscore">Misiones: 0</div>
+    </div>
+    <div style="text-align:center">
+      <div class="round-info" id="hdr-round">Ronda 1 / 6</div>
+      <div id="hdr-turnbadge" class="turn-badge">Tu turno</div>
+    </div>
+    <div style="text-align:right">
+      <div class="player-name" id="hdr-rivalname">Rival</div>
+      <div class="score" id="hdr-rivalscore">Misiones: 0</div>
+    </div>
+  </div>
+  <div class="card-area" id="card-area"></div>
+  <div class="action-area" id="action-area"></div>
+</div>
+
+<!-- FINAL SCREEN -->
+<div id="screen-final" class="screen">
+  <div class="final-card">
+    <div class="final-trophy" id="final-trophy">🏆</div>
+    <div class="final-result" id="final-result">¡Ganaste!</div>
+    <div class="final-score" id="final-score"></div>
+    <div class="final-stats">
+      <div class="stat-box">
+        <div class="stat-val" id="stat-mywins">0</div>
+        <div class="stat-label" id="stat-myname">Tus misiones</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="stat-rivalwins">0</div>
+        <div class="stat-label" id="stat-rivalname">Misiones rival</div>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="playAgain()">Nueva partida</button>
+  </div>
+</div>
+
+<!-- JUSTIFY MODAL -->
+<div class="modal-overlay" id="modal-justify">
+  <div class="modal-box">
+    <h3>Justifica tu pila</h3>
+    <p id="modal-desc">Explica en una frase por qué cada protocolo elegido cumple la misión y resiste la crisis.</p>
+    <textarea id="justify-text" placeholder="Ej: Elijo HTTPS en L7 porque Seguridad=10 supera el mínimo de 9 exigido..."></textarea>
+    <div class="modal-btns">
+      <button class="btn btn-secondary" style="padding:12px" onclick="closeJustify()">Cancelar</button>
+      <button class="btn btn-crisis" style="padding:12px" onclick="submitStack()">Confirmar pila ⚡</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- FIREBASE -->
+<script type="module">
+import { initializeApp }       from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, get, onValue, update, remove }
+                               from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+// ── FIREBASE CONFIG — pega aquí tu config de Stack Wars ────
+const firebaseConfig = {
+  apiKey: "",
+  authDomain: "",
+  databaseURL: "",
+  projectId: "",
+  storageBucket: "",
+  messagingSenderId: "",
+  appId: ""
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
+
+// ── DATOS ─────────────────────────────────────────────────
+const ATTRS = ["Fiabilidad","Velocidad","Overhead bajo","Seguridad","Adopción"];
+const ATTR_SHORT = ["Fiab","Vel","OH","Seg","Adop"];
+
+const ALL_CARDS = [
+  {id:"01",name:"TCP",   layer:4,badge:"Transporte · L4",vals:[10,5,3,6,9]},
+  {id:"02",name:"UDP",   layer:4,badge:"Transporte · L4",vals:[3,10,10,3,9]},
+  {id:"03",name:"HTTP",  layer:7,badge:"Aplicación · L7",vals:[7,7,5,2,10]},
+  {id:"04",name:"HTTPS", layer:7,badge:"Aplicación · L7",vals:[8,6,4,10,10]},
+  {id:"05",name:"DNS",   layer:7,badge:"Aplicación · L7",vals:[6,9,9,4,10]},
+  {id:"06",name:"ICMP",  layer:3,badge:"Red · L3",       vals:[5,9,9,3,8]},
+  {id:"07",name:"OSPF",  layer:3,badge:"Red · L3",       vals:[9,6,4,6,7]},
+  {id:"08",name:"BGP",   layer:3,badge:"Red · L3",       vals:[9,4,3,7,9]},
+  {id:"09",name:"ARP",   layer:2,badge:"Enlace · L2",    vals:[7,9,8,2,6]},
+  {id:"10",name:"DHCP",  layer:7,badge:"Aplicación · L7",vals:[7,8,7,3,9]},
+  {id:"11",name:"SMTP",  layer:7,badge:"Aplicación · L7",vals:[8,5,5,5,8]},
+  {id:"12",name:"MPLS",  layer:3,badge:"Red · L3",       vals:[9,9,7,7,6]},
+  {id:"13",name:"FTP",   layer:7,badge:"Aplicación · L7",vals:[8,7,4,2,7]},
+  {id:"14",name:"SFTP",  layer:7,badge:"Aplicación · L7",vals:[8,6,3,9,7]},
+  {id:"15",name:"SNMP",  layer:7,badge:"Aplicación · L7",vals:[6,8,8,4,8]},
+  {id:"16",name:"NTP",   layer:7,badge:"Aplicación · L7",vals:[7,9,9,5,9]},
+  {id:"17",name:"SIP",   layer:7,badge:"Aplicación · L7",vals:[7,8,6,6,8]},
+  {id:"18",name:"RTP",   layer:4,badge:"Transporte · L4",vals:[4,10,7,4,8]},
+  {id:"19",name:"TFTP",  layer:7,badge:"Aplicación · L7",vals:[3,9,10,1,5]},
+  {id:"20",name:"IMAP",  layer:7,badge:"Aplicación · L7",vals:[8,6,5,6,8]},
+];
+
+const MISSIONS = [
+  {id:"M01",name:"Navegación web segura",
+   reqs:[{layer:7,attr:3,min:9,label:"L7: Seguridad ≥ 9"},{layer:4,attr:0,min:7,label:"L4: Fiabilidad ≥ 7"},{layer:3,attr:null,min:null,label:"L3: cualquier protocolo"}],
+   scoreAttrs:[3,0], dif:"Básica"},
+  {id:"M02",name:"Videoconferencia corporativa",
+   reqs:[{layer:7,attr:null,min:null,label:"L7: SIP obligatorio",forced:"17"},{layer:4,attr:1,min:8,label:"L4: Velocidad ≥ 8"},{layer:3,attr:null,min:null,label:"L3: cualquier protocolo"}],
+   scoreAttrs:[1,4], dif:"Básica"},
+  {id:"M03",name:"Transferencia masiva de ficheros",
+   reqs:[{layer:7,attr:3,min:8,label:"L7: Seguridad ≥ 8 y Fiabilidad ≥ 7"},{layer:4,attr:0,min:7,label:"L4: Fiabilidad ≥ 7"},{layer:3,attr:null,min:null,label:"L3: cualquier protocolo"}],
+   scoreAttrs:[0,3], dif:"Básica"},
+  {id:"M04",name:"Telemetría IoT en tiempo real",
+   reqs:[{layer:7,attr:2,min:7,label:"L7: Overhead bajo ≥ 7"},{layer:4,attr:2,min:8,label:"L4: Overhead bajo ≥ 8"},{layer:3,attr:null,min:null,label:"L3: cualquier protocolo"}],
+   scoreAttrs:[1,2], dif:"Intermedia"},
+  {id:"M05",name:"Resolución de nombres distribuida",
+   reqs:[{layer:7,attr:null,min:null,label:"L7: DNS obligatorio",forced:"05"},{layer:4,attr:1,min:8,label:"L4: Velocidad ≥ 8"},{layer:3,attr:4,min:7,label:"L3: Adopción ≥ 7"}],
+   scoreAttrs:[1,2], dif:"Intermedia"},
+  {id:"M06",name:"Red de distribución CDN",
+   reqs:[{layer:7,attr:4,min:10,label:"L7: Adopción = 10"},{layer:4,attr:1,min:8,label:"L4: Velocidad ≥ 8"},{layer:3,attr:4,min:8,label:"L3: Adopción ≥ 8"}],
+   scoreAttrs:[1,4], dif:"Intermedia"},
+  {id:"M07",name:"Acceso remoto seguro VPN",
+   reqs:[{layer:7,attr:3,min:9,label:"L7: Seguridad ≥ 9"},{layer:4,attr:0,min:8,label:"L4: Fiabilidad ≥ 8"},{layer:3,attr:3,min:6,label:"L3: Seguridad ≥ 6"}],
+   scoreAttrs:[3,3,3], dif:"Intermedia"},
+  {id:"M08",name:"Monitorización de infraestructura",
+   reqs:[{layer:7,attr:null,min:null,label:"L7: SNMP obligatorio",forced:"15"},{layer:4,attr:null,min:null,label:"L4: cualquier protocolo"},{layer:3,attr:2,min:8,label:"L3: Overhead bajo ≥ 8"}],
+   scoreAttrs:[4,2], dif:"Intermedia"},
+  {id:"M09",name:"Arranque PXE diskless",
+   reqs:[{layer:7,attr:null,min:null,label:"L7: TFTP obligatorio",forced:"19"},{layer:4,attr:2,min:9,label:"L4: Overhead bajo ≥ 9"},{layer:2,attr:null,min:null,label:"L2: ARP obligatorio",forced:"09"}],
+   scoreAttrs:[1,2], dif:"Avanzada"},
+  {id:"M10",name:"Correo empresarial cifrado",
+   reqs:[{layer:7,attr:0,min:7,label:"L7: Fiabilidad ≥ 7 (SMTP/IMAP)"},{layer:4,attr:0,min:8,label:"L4: Fiabilidad ≥ 8"},{layer:3,attr:null,min:null,label:"L3: cualquier protocolo"}],
+   scoreAttrs:[3,0], dif:"Avanzada"},
+  {id:"M11",name:"Sincronización de relojes financiera",
+   reqs:[{layer:7,attr:null,min:null,label:"L7: NTP obligatorio",forced:"16"},{layer:4,attr:2,min:8,label:"L4: Overhead bajo ≥ 8"},{layer:3,attr:4,min:8,label:"L3: Adopción ≥ 8"}],
+   scoreAttrs:[1,2], dif:"Avanzada"},
+  {id:"M12",name:"Backbone inter-AS de ISP",
+   reqs:[{layer:3,attr:null,min:null,label:"L3: BGP obligatorio",forced:"08"},{layer:4,attr:0,min:8,label:"L4: Fiabilidad ≥ 8"},{layer:7,attr:null,min:null,label:"L7: cualquier protocolo"}],
+   scoreAttrs:[0,4], dif:"Avanzada"},
+  {id:"M13",name:"Streaming de audio en directo",
+   reqs:[{layer:7,attr:1,min:8,label:"L7: Velocidad ≥ 8"},{layer:4,attr:null,min:null,label:"L4: RTP obligatorio",forced:"18"},{layer:3,attr:4,min:7,label:"L3: Adopción ≥ 7"}],
+   scoreAttrs:[1,2], dif:"Avanzada"},
+  {id:"M14",name:"Asignación dinámica de IPs",
+   reqs:[{layer:7,attr:null,min:null,label:"L7: DHCP obligatorio",forced:"10"},{layer:4,attr:null,min:null,label:"L4: cualquier protocolo"},{layer:2,attr:null,min:null,label:"L2: ARP obligatorio",forced:"09"}],
+   scoreAttrs:[4,1], dif:"Básica"},
+  {id:"M15",name:"Red MPLS con SLA garantizado",
+   reqs:[{layer:3,attr:null,min:null,label:"L3: MPLS obligatorio",forced:"12"},{layer:4,attr:0,min:7,label:"L4: Fiabilidad ≥ 7"},{layer:7,attr:null,min:null,label:"L7: cualquier protocolo"}],
+   scoreAttrs:[1,0], dif:"Avanzada"},
+];
+
+const CRISIS = [
+  {id:"C01",name:"UDP bloqueado en el firewall",
+   effect:"L4 no puede usar carta con Overhead bajo = 10. UDP, RTP y TFTP descalificados.",
+   check:(stack)=>{ const c=stack[4]; return !c||c.vals[2]<10; }},
+  {id:"C02",name:"Ataque DDoS en curso",
+   effect:"L7 debe tener Seguridad ≥ 7. HTTP, FTP, TFTP y SNMP descalificados.",
+   check:(stack)=>{ const c=stack[7]; return !c||c.vals[3]>=7; }},
+  {id:"C03",name:"Fallo del enlace troncal",
+   effect:"L3 debe tener Fiabilidad ≥ 8. Sin convergencia robusta, carta descalificada.",
+   check:(stack)=>{ const c=stack[3]; return !c||c.vals[0]>=8; }},
+  {id:"C04",name:"Ancho de banda reducido al 10%",
+   effect:"Todas las cartas con Overhead bajo < 6 penalizan −3 pts sobre la puntuación.",
+   check:()=>true},
+  {id:"C05",name:"Auditoría GDPR obligatoria",
+   effect:"L7 debe tener Seguridad ≥ 8. HTTP, FTP y TFTP prohibidos.",
+   check:(stack)=>{ const c=stack[7]; return !c||c.vals[3]>=8; }},
+  {id:"C06",name:"Dispositivo legacy crítico",
+   effect:"Todas las cartas deben tener Adopción ≥ 8.",
+   check:(stack)=>Object.values(stack).every(c=>!c||c.vals[4]>=8)},
+  {id:"C07",name:"Capa de enlace no disponible",
+   effect:"Ranura L2 bloqueada. Misiones que exijan L2 se resuelven sin ella (−5 pts máx.).",
+   check:()=>true},
+  {id:"C08",name:"Latencia de red disparada",
+   effect:"L4 debe tener Velocidad ≥ 8. TCP (Velocidad 5) pierde comparación en ese atributo.",
+   check:(stack)=>{ const c=stack[4]; return !c||c.vals[1]>=8; }},
+  {id:"C09",name:"Filtración de datos detectada",
+   effect:"Ninguna carta con Seguridad ≤ 3 puede colocarse en ninguna ranura.",
+   check:(stack)=>Object.values(stack).every(c=>!c||c.vals[3]>3)},
+  {id:"C10",name:"Congestión extrema en el núcleo",
+   effect:"L3 y L4 deben tener Overhead bajo ≥ 7. Mayor overhead: penalización −4 pts.",
+   check:()=>true},
+];
+
+// ── HELPERS ───────────────────────────────────────────────
+function lc(l){ return {7:'l7',4:'l4',3:'l3',2:'l2'}[l]||'l7'; }
+function shuffle(a){ let b=[...a]; for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];} return b; }
+function genCode(){ return Math.random().toString(36).substring(2,6).toUpperCase(); }
+function cardById(id){ return ALL_CARDS.find(c=>c.id===id); }
+function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200); }
+function showError(msg){ document.getElementById('error-msg').textContent=msg; }
+
+// ── STATE ─────────────────────────────────────────────────
+let S = {
+  roomId:null, playerNum:null, myName:'', rivalName:'',
+  myWins:0, rivalWins:0, unsub:null,
+  // local UI state
+  myHand:[],          // card ids in hand
+  myStack:{},         // {layer: cardId} — built locally
+  selectedCard:null,  // card id currently selected in hand
+  placedCards:new Set(), // card ids already placed (grey out)
+  justifyText:'',
+};
+
+// ── LOBBY ─────────────────────────────────────────────────
+window.createRoom = async function(){
+  const name = document.getElementById('input-name').value.trim();
+  if(!name){ showError('Escribe tu nombre'); return; }
+  showError('');
+  const code = genCode();
+  const allShuffled = shuffle(ALL_CARDS.map(c=>c.id));
+  const missionIds  = shuffle(MISSIONS.map(m=>m.id)).slice(0,6);
+  const crisisIds   = shuffle(CRISIS.map(c=>c.id)).slice(0,6);
+  const p1Hand = allShuffled.slice(0,6);
+  const p2Hand = allShuffled.slice(6,12);
+
+  S.roomId = code; S.playerNum = 1; S.myName = name;
+
+  await set(ref(db,`ep1rooms/${code}`),{
+    code, status:'waiting',
+    p1:{ name, hand:p1Hand, wins:0, stack:{}, justify:'', ready:false },
+    p2:{ name:'', hand:p2Hand, wins:0, stack:{}, justify:'', ready:false },
+    round:0, totalRounds:6,
+    missions: missionIds,
+    crisis:   crisisIds,
+    phase:'build',   // 'build' | 'reveal' | 'done'
+    result:null
+  });
+
+  document.getElementById('room-code-display').textContent = code;
+  document.getElementById('panel-main').style.display='none';
+  document.getElementById('panel-waiting').style.display='block';
+  listenRoom(code);
+};
+
+window.joinRoom = async function(){
+  const name = document.getElementById('input-name').value.trim();
+  const code = document.getElementById('input-room').value.trim().toUpperCase();
+  if(!name){ showError('Escribe tu nombre'); return; }
+  if(code.length!==4){ showError('El código tiene 4 caracteres'); return; }
+  showError('');
+  const snap = await get(ref(db,`ep1rooms/${code}`));
+  if(!snap.exists()){ showError('Sala no encontrada'); return; }
+  const room = snap.val();
+  if(room.status!=='waiting'){ showError('La sala ya está en partida'); return; }
+  S.roomId=code; S.playerNum=2; S.myName=name;
+  await update(ref(db,`ep1rooms/${code}`),{ status:'playing','p2/name':name });
+  listenRoom(code);
+};
+
+window.cancelRoom = async function(){
+  if(S.roomId) await remove(ref(db,`ep1rooms/${S.roomId}`));
+  document.getElementById('panel-main').style.display='block';
+  document.getElementById('panel-waiting').style.display='none';
+  S.roomId=null;
+};
+
+// ── LISTEN ────────────────────────────────────────────────
+function listenRoom(code){
+  if(S.unsub) S.unsub();
+  S.unsub = onValue(ref(db,`ep1rooms/${code}`), snap=>{
+    if(!snap.exists()) return;
+    handleUpdate(snap.val());
+  });
+}
+
+function handleUpdate(room){
+  const me    = S.playerNum===1 ? room.p1 : room.p2;
+  const rival = S.playerNum===1 ? room.p2 : room.p1;
+  S.rivalName = rival.name||'Rival';
+  S.myWins    = me.wins||0;
+  S.rivalWins = rival.wins||0;
+
+  if(room.status==='playing' && document.getElementById('screen-lobby').classList.contains('active')){
+    startGame(room); return;
+  }
+  if(room.status==='finished'){ showFinal(room); return; }
+  if(room.status==='playing') renderGame(room);
+}
+
+// ── START GAME ────────────────────────────────────────────
+function startGame(room){
+  const me = S.playerNum===1 ? room.p1 : room.p2;
+  S.myHand = me.hand;
+  document.getElementById('panel-main').style.display='block';
+  document.getElementById('panel-waiting').style.display='none';
+  resetLocalStack();
+  showScreen('screen-game');
+  renderGame(room);
+}
+
+function resetLocalStack(){
+  S.myStack={};
+  S.selectedCard=null;
+  S.placedCards=new Set();
+  S.justifyText='';
+}
+
+// ── RENDER ────────────────────────────────────────────────
+function renderGame(room){
+  const me    = S.playerNum===1 ? room.p1 : room.p2;
+  const rival = S.playerNum===1 ? room.p2 : room.p1;
+  const round = room.round||0;
+  const mission = MISSIONS.find(m=>m.id===room.missions[round]);
+  const crisis  = CRISIS.find(c=>c.id===room.crisis[round]);
+
+  // Header
+  document.getElementById('hdr-myname').textContent    = me.name||'Tú';
+  document.getElementById('hdr-rivalname').textContent = rival.name||'Rival';
+  document.getElementById('hdr-myscore').textContent   = `Misiones: ${me.wins||0}`;
+  document.getElementById('hdr-rivalscore').textContent= `Misiones: ${rival.wins||0}`;
+  document.getElementById('hdr-round').textContent     = `Ronda ${round+1} / ${room.totalRounds}`;
+
+  const myReady = !!(me.stack && Object.keys(me.stack).length > 0);
+  const badge = document.getElementById('hdr-turnbadge');
+  if(room.phase==='reveal'){
+    badge.textContent='Revelando'; badge.className='wait-badge';
+  } else {
+    badge.textContent = myReady ? 'Pila enviada ✓' : 'Construyendo';
+    badge.className = myReady ? 'turn-badge' : 'wait-badge';
+  }
+
+  const area   = document.getElementById('card-area');
+  const actions= document.getElementById('action-area');
+  area.innerHTML=''; actions.innerHTML='';
+
+  if(room.phase==='build'){
+    renderBuildPhase(area, actions, room, mission, crisis, me, rival);
+  } else if(room.phase==='reveal'){
+    renderRevealPhase(area, actions, room, mission, crisis, me, rival);
+  }
+}
+
+// ── BUILD PHASE ───────────────────────────────────────────
+function renderBuildPhase(area, actions, room, mission, crisis, me, rival){
+  const myReady = !!(me.stack && Object.keys(me.stack).length>0);
+
+  // Crisis banner
+  area.innerHTML += `
+    <div class="crisis-banner">
+      <div class="crisis-title">⚡ Crisis activa</div>
+      <div class="crisis-name">${crisis.name}</div>
+      <div class="crisis-effect">${crisis.effect}</div>
+    </div>`;
+
+  // Mission banner
+  const reqsHtml = mission.reqs.map(r=>`<div class="req-line"><strong>${r.label.split(':')[0]}:</strong> ${r.label.split(':')[1]||''}</div>`).join('');
+  const scoreAttrNames = [...new Set(mission.scoreAttrs.map(i=>ATTRS[i]))].join(' + ');
+  area.innerHTML += `
+    <div class="mission-banner">
+      <div class="mission-title">🎯 Misión — ${mission.dif}</div>
+      <div class="mission-name">${mission.name}</div>
+      <div class="mission-reqs">${reqsHtml}</div>
+      <div class="score-hint">Puntuación: ${scoreAttrNames} de tu pila</div>
+    </div>`;
+
+  if(myReady){
+    // Already sent — show submitted stack and wait
+    area.innerHTML += `<div class="section-title" style="margin-top:4px">Tu pila enviada</div>`;
+    area.innerHTML += renderStackSlots(me.stack, mission, crisis, false);
+    area.innerHTML += `<div class="waiting-overlay"><p>${rival.name||'Tu rival'} está construyendo su pila<div class="dot-pulse"><span></span><span></span><span></span></div></p></div>`;
+  } else {
+    // Build UI
+    area.innerHTML += `<div class="section-title" style="margin-top:4px">Tablero — toca una carta y luego su capa</div>`;
+    area.innerHTML += renderStackSlots(S.myStack, mission, crisis, true);
+    area.innerHTML += `<div class="section-title" style="margin-top:2px">Tu mano</div>`;
+    area.innerHTML += renderHand(mission, crisis);
+
+    // Wire up card selection
+    area.querySelectorAll('.hand-card:not(.placed):not(.disabled)').forEach(el=>{
+      el.addEventListener('click',()=>selectHandCard(el.dataset.id, mission, crisis));
+    });
+    // Board nodes use inline onclick — no additional wiring needed
+
+    // Actions
+    const canConfirm = stackCoversRequiredLayers(S.myStack, mission, crisis);
+    actions.innerHTML = `
+      <button class="confirm-btn" id="confirm-btn" ${canConfirm?'':'disabled'}
+        onclick="openJustify()">Enviar pila →</button>
+      <button class="undo-btn" onclick="undoStack()">↩ Deshacer última carta</button>`;
+  }
+}
+
+function stackCoversRequiredLayers(stack, mission, crisis){
+  // Crisis C07 blocks L2
+  const l2blocked = crisis.id==='C07';
+  return mission.reqs.every(r=>{
+    if(l2blocked && r.layer===2) return true; // waived
+    return !!stack[r.layer];
+  });
+}
+
+function renderStackSlots(stack, mission, crisis, interactive){
+  const l2blocked = crisis && crisis.id==='C07';
+  const requiredLayers = mission.reqs.map(r=>r.layer);
+  const hasL2 = requiredLayers.includes(2);
+
+  // Layer colors
+  const LC = {7:'#378ADD',4:'#1D9E75',3:'#7F77DD',2:'#D85A30'};
+  const LCbg = {7:'#0a1828',4:'#061a12',3:'#120f1e',2:'#1a0e06'};
+  const LCdim = {7:'#0C447C',4:'#085041',3:'#3C3489',2:'#712B13'};
+  const ATTR_S = ['Fiab','Vel','OH','Seg','Adop'];
+
+  // Positions: center=L2 (r=0), then L3(r=72), L4(r=112), L7(r=148)
+  // For each required layer, compute angle positions evenly around the ring
+  const CX=160, CY=160;
+  const layerRings = {2:0, 3:72, 4:112, 7:148};
+  // Count slots per layer for angle distribution
+  const layerCounts = {};
+  for(const r of mission.reqs){
+    layerCounts[r.layer] = (layerCounts[r.layer]||0)+1;
+  }
+  // Assign angle to each req in order
+  const layerIdx = {};
+  const nodeData = mission.reqs.map(r=>{
+    const layer = r.layer;
+    const idx = layerIdx[layer]||0;
+    layerIdx[layer] = idx+1;
+    const count = layerCounts[layer];
+    const ring = layerRings[layer]||148;
+    let angle;
+    if(layer===2){ angle=0; }
+    else if(count===1){ angle=-Math.PI/2; }
+    else { angle = -Math.PI/2 + (idx/(count)) * 2*Math.PI; }
+    const cx = ring===0 ? CX : CX + ring*Math.cos(angle);
+    const cy = ring===0 ? CY : CY + ring*Math.sin(angle);
+    const card = stack[layer] ? cardById(stack[layer]) : null;
+    const blocked = l2blocked && layer===2;
+    return {layer,r,cx,cy,ring,card,blocked};
+  });
+
+  // Build SVG
+  let svg = `<div class="board-wrap"><svg class="board-svg" viewBox="0 0 320 320" role="img">
+  <title>Tablero de pila de protocolos</title>`;
+
+  // Background circle
+  svg += `<circle cx="${CX}" cy="${CY}" r="156" fill="#0f1923" stroke="#1a2535" stroke-width="1.2"/>`;
+
+  // Draw ring guides for layers present in mission
+  const rings = [...new Set(mission.reqs.map(r=>layerRings[r.layer]))].filter(r=>r>0).sort((a,b)=>a-b);
+  for(const ring of rings){
+    const layer = Object.keys(layerRings).find(k=>layerRings[k]===ring);
+    svg += `<circle cx="${CX}" cy="${CY}" r="${ring}" fill="none" stroke="${LC[layer]}" stroke-width="0.6" stroke-dasharray="3 3" opacity="0.35"/>`;
+  }
+
+  // Layer labels at top of each ring
+  const labelAngles = [-Math.PI*0.52, -Math.PI*0.62, -Math.PI*0.72];
+  let labelI=0;
+  for(const ring of rings){
+    const layer = parseInt(Object.keys(layerRings).find(k=>layerRings[k]===ring));
+    const a = labelAngles[labelI++]||(-Math.PI/2);
+    const lx = CX + (ring-12)*Math.cos(a);
+    const ly = CY + (ring-12)*Math.sin(a);
+    svg += `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="middle" font-size="7" fill="${LC[layer]}" font-family="system-ui,sans-serif" font-weight="700" letter-spacing="0.06em" opacity="0.75">L${layer}</text>`;
+  }
+
+  // Draw connector lines from center to outer nodes
+  for(const n of nodeData){
+    if(n.ring>0){
+      const dirX=(n.cx-CX), dirY=(n.cy-CY);
+      const dist=Math.sqrt(dirX*dirX+dirY*dirY);
+      const nx=dirX/dist, ny=dirY/dist;
+      const sx=CX+nx*30, sy=CY+ny*30; // start 30px from center
+      const ex=n.cx-nx*24, ey=n.cy-ny*24; // end 24px from node center
+      const col = n.card ? LC[n.layer] : '#2a3545';
+      svg += `<line x1="${sx.toFixed(1)}" y1="${sy.toFixed(1)}" x2="${ex.toFixed(1)}" y2="${ey.toFixed(1)}" stroke="${col}" stroke-width="0.8" opacity="0.5" stroke-dasharray="3 2"/>`;
+    }
+  }
+
+  // Draw nodes
+  for(const n of nodeData){
+    const {layer,r,cx,cy,card,blocked} = n;
+    const R = layer===2 ? 32 : (layer===7 ? 26 : 28);
+    const isInteractive = interactive && !blocked;
+    const hasCard = !!card;
+    const scoreAttrs = card ? mission.scoreAttrs.map(i=>`${ATTR_S[i]}:${card.vals[i]}`).join(' ') : '';
+
+    const pulseCls = isInteractive && !hasCard ? ' slot-pulsing' : '';
+    const glowCls  = hasCard && !blocked ? ' ring-glow' : '';
+
+    if(blocked){
+      // Blocked L2 node
+      svg += `<g class="board-node inactive">
+        <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${R}" fill="#1a0e0e" stroke="#3a2020" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <text x="${cx.toFixed(1)}" y="${(cy-5).toFixed(1)}" text-anchor="middle" font-size="9" fill="#664444" font-family="system-ui,sans-serif" font-weight="700">L2</text>
+        <text x="${cx.toFixed(1)}" y="${(cy+7).toFixed(1)}" text-anchor="middle" font-size="10" fill="#664444" font-family="system-ui,sans-serif">🔒</text>
+      </g>`;
+    } else if(hasCard){
+      // Filled node
+      svg += `<g class="board-node${pulseCls}" ${isInteractive?`onclick="placeCard(${layer})"`:''}>
+        <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${R+3}" fill="${LC[layer]}" opacity="0.12" class="${glowCls}"/>
+        <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${R}" fill="${LCbg[layer]}" stroke="${LC[layer]}" stroke-width="2"/>
+        <text x="${cx.toFixed(1)}" y="${(cy-6).toFixed(1)}" text-anchor="middle" font-size="7.5" fill="${LC[layer]}" font-family="system-ui,sans-serif" font-weight="700" letter-spacing="0.06em">L${layer}</text>
+        <text x="${cx.toFixed(1)}" y="${(cy+5).toFixed(1)}" text-anchor="middle" font-size="${card.name.length>4?9.5:11}" fill="#ffffff" font-family="system-ui,sans-serif" font-weight="700">${card.name}</text>
+        <text x="${cx.toFixed(1)}" y="${(cy+16).toFixed(1)}" text-anchor="middle" font-size="7" fill="${LCdim[layer]}" font-family="system-ui,sans-serif">${scoreAttrs}</text>
+      </g>`;
+    } else {
+      // Empty slot
+      svg += `<g class="board-node${pulseCls}${isInteractive?'':'inactive'}" ${isInteractive?`onclick="placeCard(${layer})"`:''}>
+        <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${R}" fill="${LCbg[layer]}" stroke="${LC[layer]}" stroke-width="1.5" stroke-dasharray="${isInteractive?'4 3':'0'}"/>
+        <text x="${cx.toFixed(1)}" y="${(cy-5).toFixed(1)}" text-anchor="middle" font-size="7.5" fill="${LC[layer]}" font-family="system-ui,sans-serif" font-weight="700" letter-spacing="0.06em">L${layer}</text>
+        <text x="${cx.toFixed(1)}" y="${(cy+6).toFixed(1)}" text-anchor="middle" font-size="${isInteractive?16:11}" fill="${isInteractive?LC[layer]:'#2a3545'}" font-family="system-ui,sans-serif">${isInteractive?'+':'—'}</text>
+      </g>`;
+    }
+  }
+
+  svg += `</svg></div>`;
+  return svg;
+}
+
+function renderHand(mission, crisis){
+  let html = '<div class="hand-grid">';
+  for(const id of S.myHand){
+    const card = cardById(id);
+    const placed = S.placedCards.has(id);
+    const selected = S.selectedCard===id;
+    // Check crisis violation
+    const violates = checkCrisisViolation(card, crisis);
+    const cls = `hand-card hc-${lc(card.layer)}${selected?' selected':''}${placed?' placed':''}${violates&&!placed?' disabled':''}`;
+    const valsHtml = mission.scoreAttrs.map(i=>`<span class="hcard-val highlight">${ATTR_SHORT[i]} ${card.vals[i]}</span>`).join('');
+    html += `<div class="${cls}" data-id="${id}">
+      <div class="hcard-inner">
+        <span class="hcard-badge">${card.badge}</span>
+        <span class="hcard-name">${card.name}</span>
+        <div class="hcard-vals">${valsHtml}</div>
+      </div>
+    </div>`;
+  }
+  html += '</div>';
+  return html;
+}
+
+function checkCrisisViolation(card, crisis){
+  if(!crisis) return false;
+  if(crisis.id==='C01' && card.layer===4 && card.vals[2]===10) return true;
+  if(crisis.id==='C02' && card.layer===7 && card.vals[3]<7)   return true;
+  if(crisis.id==='C05' && card.layer===7 && card.vals[3]<8)   return true;
+  if(crisis.id==='C06' && card.vals[4]<8)                     return true;
+  if(crisis.id==='C08' && card.layer===4 && card.vals[1]<8)   return true;
+  if(crisis.id==='C09' && card.vals[3]<=3)                    return true;
+  return false;
+}
+
+function selectHandCard(id, mission, crisis){
+  S.selectedCard = (S.selectedCard===id) ? null : id;
+  renderGame_local(mission, crisis);
+}
+
+function renderGame_local(mission, crisis){
+  const handGrid = document.querySelector('.hand-grid');
+  const boardWrap = document.querySelector('.board-wrap');
+  if(!handGrid || !boardWrap) return;
+
+  // Re-render hand
+  const tmpDiv = document.createElement('div');
+  tmpDiv.innerHTML = renderHand(mission, crisis);
+  handGrid.replaceWith(tmpDiv.firstChild);
+  document.querySelectorAll('.hand-card:not(.placed):not(.disabled)').forEach(el=>{
+    el.addEventListener('click',()=>selectHandCard(el.dataset.id, mission, crisis));
+  });
+
+  // Re-render circular board
+  const tmpBoard = document.createElement('div');
+  tmpBoard.innerHTML = renderStackSlots(S.myStack, mission, crisis, true);
+  boardWrap.replaceWith(tmpBoard.firstChild);
+
+  // Update confirm btn
+  const canConfirm = stackCoversRequiredLayers(S.myStack, mission, crisis);
+  const btn = document.getElementById('confirm-btn');
+  if(btn) btn.disabled = !canConfirm;
+}
+
+window.placeCard = function placeCard(layer){
+  if(!S.selectedCard){ showToast('Selecciona primero una carta de tu mano'); return; }
+  const card = cardById(S.selectedCard);
+  if(card.layer !== layer){
+    showToast(`${card.name} es de Capa ${card.layer}, no de Capa ${layer}`);
+    return;
+  }
+  // Remove previous card in that slot from placedCards if any
+  const prev = S.myStack[layer];
+  if(prev) S.placedCards.delete(prev);
+
+  S.myStack[layer] = S.selectedCard;
+  S.placedCards.add(S.selectedCard);
+  S.selectedCard = null;
+
+  // Need mission/crisis to re-render — pull from current DOM context
+  // Trigger a room re-fetch to get mission/crisis cleanly
+  get(ref(db,`ep1rooms/${S.roomId}`)).then(snap=>{
+    if(!snap.exists()) return;
+    const room = snap.val();
+    const round = room.round||0;
+    const mission = MISSIONS.find(m=>m.id===room.missions[round]);
+    const crisis  = CRISIS.find(c=>c.id===room.crisis[round]);
+    renderGame_local(mission, crisis);
+  });
+}
+
+window.undoStack = function(){
+  const layers = Object.keys(S.myStack).map(Number);
+  if(!layers.length){ showToast('La pila está vacía'); return; }
+  const lastLayer = layers[layers.length-1];
+  const cardId = S.myStack[lastLayer];
+  S.placedCards.delete(cardId);
+  delete S.myStack[lastLayer];
+  S.selectedCard=null;
+  get(ref(db,`ep1rooms/${S.roomId}`)).then(snap=>{
+    if(!snap.exists()) return;
+    const room = snap.val();
+    const round = room.round||0;
+    const mission = MISSIONS.find(m=>m.id===room.missions[round]);
+    const crisis  = CRISIS.find(c=>c.id===room.crisis[round]);
+    renderGame_local(mission, crisis);
+  });
+};
+
+window.openJustify = function(){
+  document.getElementById('modal-justify').classList.add('open');
+  document.getElementById('justify-text').value='';
+};
+window.closeJustify = function(){
+  document.getElementById('modal-justify').classList.remove('open');
+};
+
+window.submitStack = async function(){
+  const justify = document.getElementById('justify-text').value.trim();
+  // justify optional — encourage but don't force
+  document.getElementById('modal-justify').classList.remove('open');
+
+  const stackToSave = {...S.myStack};
+  const pKey = `p${S.playerNum}`;
+  await update(ref(db,`ep1rooms/${S.roomId}`),{
+    [`${pKey}/stack`]: stackToSave,
+    [`${pKey}/justify`]: justify||'(sin justificación)',
+    [`${pKey}/ready`]: true,
+  });
+
+  // If both ready → reveal
+  const snap = await get(ref(db,`ep1rooms/${S.roomId}`));
+  const room  = snap.val();
+  if(room.p1.ready && room.p2.ready){
+    await update(ref(db,`ep1rooms/${S.roomId}`),{ phase:'reveal' });
+  }
+};
+
+// ── REVEAL PHASE ──────────────────────────────────────────
+function renderRevealPhase(area, actions, room, mission, crisis, me, rival){
+  const myStack    = me.stack    || {};
+  const rivalStack = rival.stack || {};
+
+  // Score both stacks
+  const myScore    = scoreStack(myStack,    mission, crisis);
+  const rivalScore = scoreStack(rivalStack, mission, crisis);
+  const iWon  = myScore > rivalScore;
+  const iLost = rivalScore > myScore;
+  const draw  = myScore === rivalScore;
+
+  // Crisis banner
+  area.innerHTML += `
+    <div class="crisis-banner">
+      <div class="crisis-title">⚡ Crisis activa</div>
+      <div class="crisis-name">${crisis.name}</div>
+      <div class="crisis-effect">${crisis.effect}</div>
+    </div>`;
+
+  // Result banner
+  const resBanner = document.createElement('div');
+  resBanner.className = `result-banner ${draw?'draw':iWon?'win':'lose'}`;
+  resBanner.innerHTML = `
+    <div class="result-title">${draw?'¡Empate!':iWon?'¡Misión resuelta! 🎯':'Misión fallida'}</div>
+    <div class="result-sub">Tu puntuación: ${myScore} · ${rival.name||'Rival'}: ${rivalScore}</div>`;
+  area.appendChild(resBanner);
+
+  // My stack
+  area.innerHTML += buildRevealSection('Tu pila', myStack, mission, crisis, iWon?'winner':iLost?'loser':'draw');
+  // Rival stack
+  area.innerHTML += buildRevealSection(`Pila de ${rival.name||'Rival'}`, rivalStack, mission, crisis, iWon?'loser':iLost?'winner':'draw');
+
+  // Justify texts
+  if(me.justify && me.justify!=='(sin justificación)'){
+    area.innerHTML += `<div class="reveal-section" style="margin-top:0">
+      <div class="rev-title">Tu justificación</div>
+      <p style="font-size:0.8rem;color:var(--muted);line-height:1.45">${me.justify}</p>
+    </div>`;
+  }
+
+  // Next button — only P1 advances to avoid race
+  if(S.playerNum===1){
+    const nextBtn = document.createElement('button');
+    nextBtn.className='next-btn';
+    nextBtn.textContent = (room.round+1)>=room.totalRounds ? 'Ver resultado final' : 'Siguiente ronda →';
+    nextBtn.onclick = ()=>nextRound(room, myScore, rivalScore, iWon, iLost, draw);
+    actions.appendChild(nextBtn);
+  } else {
+    actions.innerHTML=`<div class="waiting-overlay"><p>Esperando a ${rival.name||'P1'} para continuar…</p></div>`;
+  }
+}
+
+function buildRevealSection(title, stack, mission, crisis, outcome){
+  let html = `<div class="reveal-section"><div class="rev-title">${title}</div><div class="reveal-stack">`;
+  const l2blocked = crisis.id==='C07';
+  for(const r of mission.reqs){
+    const layer  = r.layer;
+    const cardId = stack[layer];
+    const card   = cardId ? cardById(cardId) : null;
+    const blocked= l2blocked && layer===2;
+    if(blocked){
+      html += `<div class="rev-row blocked-row">
+        <span class="rev-layer" style="color:var(--c2)">L${layer}</span>
+        <span class="rev-proto" style="color:#664444">Bloqueada</span>
+        <span class="rev-score" style="color:#664444">−5</span>
+      </div>`;
+      continue;
+    }
+    if(!card){
+      html += `<div class="rev-row lose-row">
+        <span class="rev-layer">L${layer}</span>
+        <span class="rev-proto" style="color:#cc5555">Sin carta</span>
+        <span class="rev-score" style="color:#cc5555">0</span>
+      </div>`;
+      continue;
+    }
+    const scoreVal = mission.scoreAttrs.reduce((sum,i)=>sum+card.vals[i],0);
+    const penalty  = calcPenalty(card, crisis);
+    const net      = scoreVal - penalty;
+    // Check if violates mission req
+    const reqOk    = checkMissionReq(card, r);
+    const rowCls   = `rev-row ${!reqOk?'lose-row':outcome==='winner'?'win-row':outcome==='loser'?'lose-row':'neutral-row'}`;
+    const layerColor = {7:'var(--c7)',4:'var(--c4)',3:'var(--c3)',2:'var(--c2)'}[layer]||'var(--c7)';
+    html += `<div class="${rowCls}">
+      <span class="rev-layer" style="color:${layerColor}">L${layer}</span>
+      <span class="rev-proto" style="color:#fff">${card.name}</span>
+      <span class="rev-score" style="color:${net>=0?'#9FE1CB':'#f5a0a0'}">${net>0?'+':''}${net}</span>
+    </div>`;
+  }
+  html += '</div></div>';
+  return html;
+}
+
+function checkMissionReq(card, req){
+  if(req.forced) return card.id===req.forced;
+  if(req.attr!==null && req.min!==null) return card.vals[req.attr]>=req.min;
+  return true;
+}
+
+function calcPenalty(card, crisis){
+  if(!crisis) return 0;
+  let p=0;
+  if(crisis.id==='C04' && card.vals[2]<6) p+=3;
+  if(crisis.id==='C10' && (card.layer===3||card.layer===4) && card.vals[2]<7) p+=4;
+  return p;
+}
+
+function scoreStack(stack, mission, crisis){
+  const l2blocked = crisis.id==='C07';
+  let total=0;
+  for(const r of mission.reqs){
+    const layer  = r.layer;
+    if(l2blocked && layer===2){ total -= 5; continue; }
+    const cardId = stack[layer];
+    const card   = cardId ? cardById(cardId) : null;
+    if(!card) continue;
+    // Check req validity
+    if(!checkMissionReq(card,r)) continue;
+    const base = mission.scoreAttrs.reduce((s,i)=>s+card.vals[i],0);
+    const pen  = calcPenalty(card, crisis);
+    total += base - pen;
+  }
+  // Crisis hard checks
+  if(crisis.id==='C01'||crisis.id==='C02'||crisis.id==='C03'||crisis.id==='C05'||crisis.id==='C06'||crisis.id==='C08'||crisis.id==='C09'){
+    const allCards = Object.values(stack).map(id=>cardById(id)).filter(Boolean);
+    const valid = allCards.every(c=>!checkCrisisViolation(c,crisis));
+    if(!valid) total = Math.floor(total * 0.6); // 40% penalty for crisis violations
+  }
+  return Math.max(0, total);
+}
+
+async function nextRound(room, myScore, rivalScore, iWon, iLost, draw){
+  const newP1Wins = (room.p1.wins||0) + (S.playerNum===1 ? (iWon?1:0) : (iLost?1:0));
+  const newP2Wins = (room.p2.wins||0) + (S.playerNum===2 ? (iWon?1:0) : (iLost?1:0));
+  // Recalculate from server perspective
+  const p1Stack = room.p1.stack||{};
+  const p2Stack = room.p2.stack||{};
+  const round   = room.round||0;
+  const mission = MISSIONS.find(m=>m.id===room.missions[round]);
+  const crisis  = CRISIS.find(c=>c.id===room.crisis[round]);
+  const p1Score = scoreStack(p1Stack, mission, crisis);
+  const p2Score = scoreStack(p2Stack, mission, crisis);
+  const p1Won   = p1Score > p2Score;
+  const p2Won   = p2Score > p1Score;
+
+  const nextRound = round + 1;
+  if(nextRound >= room.totalRounds){
+    await update(ref(db,`ep1rooms/${S.roomId}`),{
+      'p1/wins': (room.p1.wins||0)+(p1Won?1:0),
+      'p2/wins': (room.p2.wins||0)+(p2Won?1:0),
+      round: nextRound, status:'finished'
+    });
+  } else {
+    // Reset for next round
+    resetLocalStack();
+    await update(ref(db,`ep1rooms/${S.roomId}`),{
+      'p1/wins':  (room.p1.wins||0)+(p1Won?1:0),
+      'p2/wins':  (room.p2.wins||0)+(p2Won?1:0),
+      'p1/stack': {},
+      'p2/stack': {},
+      'p1/justify':'',
+      'p2/justify':'',
+      'p1/ready':false,
+      'p2/ready':false,
+      round: nextRound, phase:'build'
+    });
+  }
+}
+
+// ── FINAL ─────────────────────────────────────────────────
+function showFinal(room){
+  const me    = S.playerNum===1 ? room.p1 : room.p2;
+  const rival = S.playerNum===1 ? room.p2 : room.p1;
+  const myW=me.wins||0, rivW=rival.wins||0;
+  const won=myW>rivW, draw=myW===rivW;
+  document.getElementById('final-trophy').textContent   = draw?'🤝':won?'🏆':'😔';
+  document.getElementById('final-result').textContent   = draw?'¡Empate!':won?'¡Ganaste!':'¡Perdiste!';
+  document.getElementById('final-score').textContent    = `${me.name} ${myW} — ${rivW} ${rival.name}`;
+  document.getElementById('stat-mywins').textContent    = myW;
+  document.getElementById('stat-rivalwins').textContent = rivW;
+  document.getElementById('stat-myname').textContent    = me.name;
+  document.getElementById('stat-rivalname').textContent = rival.name;
+  showScreen('screen-final');
+}
+
+window.playAgain = function(){
+  if(S.unsub) S.unsub();
+  S={ roomId:null,playerNum:null,myName:'',rivalName:'',myWins:0,rivalWins:0,unsub:null,
+      myHand:[],myStack:{},selectedCard:null,placedCards:new Set(),justifyText:'' };
+  document.getElementById('panel-main').style.display='block';
+  document.getElementById('panel-waiting').style.display='none';
+  document.getElementById('input-name').value='';
+  document.getElementById('input-room').value='';
+  showScreen('screen-lobby');
+};
+
+</script>
+</body>
+</html>

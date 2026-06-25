@@ -72,7 +72,7 @@ Si round >= totalRounds → status='finished'
 ### Construcción de pila
 - Cada jugador recibe 6 cartas de protocolo al inicio (mano aleatoria del mazo de 20)
 - La misión activa indica qué capas OSI son obligatorias y qué atributos mínimos se requieren
-- El jugador coloca una carta por ranura de capa (L2 / L3 / L4 / L7) para cubrir las capas exigidas
+- El jugador coloca una carta por nodo del tablero circular, seleccionando primero la carta de su mano y luego tocando el nodo de la capa correcta
 - Las cartas que violan la crisis activa se atenúan y no pueden colocarse
 - El jugador tiene 60 segundos (honor system) para construir y justificar su pila
 
@@ -269,17 +269,39 @@ El núcleo de red está saturado al 98%. Gestión de tráfico de emergencia acti
 |---|---|
 | Fondo de pantalla | `#0f1923` |
 | Superficie | `#1a2535` |
-| Capa 7 Aplicación | `#378ADD` / fondo `#E6F1FB` |
-| Capa 4 Transporte | `#1D9E75` / fondo `#E1F5EE` |
-| Capa 3 Red | `#7F77DD` / fondo `#EEEDFE` |
-| Capa 2 Enlace | `#D85A30` / fondo `#FAECE7` |
+| Capa 7 Aplicación | `#378ADD` / fondo `#0a1828` |
+| Capa 4 Transporte | `#1D9E75` / fondo `#061a12` |
+| Capa 3 Red | `#7F77DD` / fondo `#120f1e` |
+| Capa 2 Enlace | `#D85A30` / fondo `#1a0e06` |
 | Crisis (banner) | `#D85A30` sobre `#2a1508` |
 | Misión (banner) | `#378ADD` sobre `#0a1828` |
 
+### Tablero circular (inspirado en SMART10)
+
+El tablero central es un SVG de 320×320 px que representa el modelo OSI como **anillos concéntricos**. Cada capa OSI requerida por la misión aparece como un nodo circular en su anillo correspondiente:
+
+| Capa | Radio del anillo | Posición |
+|---|---|---|
+| L2 — Enlace | 0 (centro) | Nodo central único |
+| L3 — Red | 72 px | Distribuidos uniformemente en el anillo |
+| L4 — Transporte | 112 px | Distribuidos uniformemente en el anillo |
+| L7 — Aplicación | 148 px | Distribuidos uniformemente en el anillo |
+
+**Estados de nodo:**
+- **Vacío interactivo**: borde punteado + símbolo `+` + animación de pulso suave — toca para colocar la carta seleccionada
+- **Ocupado**: fondo de color de la capa + nombre del protocolo + atributos de puntuación + halo de brillo animado
+- **Bloqueado** (crisis C07 en L2): borde rojo oscuro + candado `🔒`
+
+**Interacción en dos pasos:**
+1. El jugador toca una carta de su mano → queda resaltada (borde azul)
+2. El jugador toca el nodo del anillo correcto → la carta se coloca
+
+Si la carta es de una capa diferente al nodo tocado, aparece un toast de error. Las cartas que violan la crisis activa se atenúan en la mano y no pueden seleccionarse.
+
 ### Pantallas del juego
 1. **Lobby** — nombre + crear/unirse a sala
-2. **Juego (build phase)** — banner de crisis + banner de misión + ranuras de pila + mano de 6 cartas + botón enviar
-3. **Juego (reveal phase)** — banner de crisis + resultado + pila propia + pila rival + puntuaciones + botón siguiente
+2. **Juego (build phase)** — banner de crisis + banner de misión + tablero circular SVG + mano de 6 cartas + botón enviar
+3. **Juego (reveal phase)** — banner de crisis + resultado + lista de filas por capa con puntuaciones + botón siguiente
 4. **Final** — trofeo + resultado + estadísticas + botón nueva partida
 
 ---
@@ -300,6 +322,22 @@ Si el usuario quiere cambiar el tema de la asignatura, adapta los nombres de las
 
 ---
 
+## FRAGMENTOS DE LÓGICA CRÍTICA
+
+### Guard anti-race en nextRound (solo P1 avanza)
+Solo el jugador 1 llama a la función que incrementa el round y resetea las pilas en Firebase. El jugador 2 ve un mensaje "esperando a P1". Esto evita que ambos escriban simultáneamente al pulsar "Siguiente ronda".
+
+### Re-render local sin consultar Firebase
+Al seleccionar carta o colocarla en un nodo, no se hace `get()` a Firebase — se re-renderiza solo el DOM del tablero circular (`.board-wrap`) y la mano (`.hand-grid`) usando el estado local (`S.myStack`, `S.placedCards`, `S.selectedCard`). Solo se hace `get()` para obtener `mission`/`crisis` actuales cuando es necesario (placeCard, undoStack).
+
+### Tablero circular — función renderStackSlots
+Genera un SVG de 320×320 px con nodos circulares por capa. Los radios de anillo son fijos: L2=0 (centro), L3=72, L4=112, L7=148. Los nodos vacíos tienen `onclick="placeCard(layer)"` inline en el SVG — requiere que `placeCard` esté expuesta como `window.placeCard`. Los nodos pulsantes usan `@keyframes slot-pulse` en CSS.
+
+### Penalización por violaciones de crisis duras
+Si la pila contiene cartas que violan una crisis dura (C01, C02, C03, C05, C06, C08, C09), la puntuación total se multiplica por 0.6 (reducción del 40%) en lugar de invalidar carta a carta. Esto permite pilas parcialmente válidas pero penalizadas.
+
+---
+
 ## METADATOS DEL PROYECTO
 
 | Campo | Valor |
@@ -310,6 +348,7 @@ Si el usuario quiere cambiar el tema de la asignatura, adapta los nombres de las
 | Marco pedagógico | Aprendizaje Basado en Juegos (ABJ) — Innovación Docente en el Aula Universitaria |
 | Mecánica base | Construcción de pila de protocolos por capas OSI |
 | Mecánica complementaria | Carta de crisis por ronda (restricción dinámica) |
+| Tablero | Circular SVG — capas OSI como anillos concéntricos (inspirado en SMART10) |
 | Jugadores | 2 (versión digital) · 2–4 (versión física) |
 | Duración estimada | 25–35 minutos por partida |
 | Nivel educativo | Máster universitario |

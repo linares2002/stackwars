@@ -48,6 +48,7 @@ El momento de aprendizaje clave es la **justificación oral de la pila**: antes 
 stack-wars-ep1/
 ├── stack_wars_ep1.html        # Juego multijugador en tiempo real (Firebase)
 ├── stack_wars_ep1_prompt.md   # Prompt completo para regenerar o ampliar el juego con IA
+├── qr_sw.png                  # Código QR — https://edurag.org/sw
 └── README.md
 ```
 
@@ -60,8 +61,12 @@ stack-wars-ep1/
 - 20 cartas de protocolo (reutilizadas del Episodio original)
 - 15 cartas de misión
 - 10 cartas de crisis
-- Tablero con 4 ranuras de capa (L2 / L3 / L4 / L7)
+- Tablero circular con nodos de capa (L2 / L3 / L4 / L7)
 - Marcador de rondas
+
+### El tablero circular
+
+El tablero representa el modelo OSI como **anillos concéntricos**: L2 en el centro, L3 en el primer anillo, L4 en el segundo y L7 en el exterior. Cada misión activa solo los nodos de las capas que exige, de modo que el jugador ve exactamente qué capas necesita cubrir. La estructura visual refleja directamente la jerarquía real del modelo de red: las capas más bajas (más técnicas) están en el núcleo, y las más cercanas al usuario en el exterior.
 
 ### Preparación
 
@@ -73,7 +78,7 @@ stack-wars-ep1/
 ### Reglas básicas
 
 1. Cada jugador lee en silencio la misión y la crisis activa.
-2. En 60 segundos, cada jugador coloca cartas de su mano en las ranuras del tablero para cubrir las capas requeridas por la misión.
+2. En 60 segundos, cada jugador coloca cartas de su mano en los nodos del tablero para cubrir las capas requeridas por la misión.
 3. Antes de revelar, el jugador **justifica en voz alta** por qué cada protocolo elegido cumple la misión y supera la restricción de crisis. Sin justificación = pierde la ronda.
 4. Ambos jugadores revelan su pila simultáneamente.
 5. Se calcula la puntuación de cada pila (suma de atributos relevantes indicados en la misión, menos penalizaciones de crisis).
@@ -135,15 +140,28 @@ Los alumnos solo necesitan escanear el QR o abrir la URL en el navegador de su m
 1. **Jugador 1** escribe su nombre → pulsa **Crear sala** → obtiene un código de 4 letras.
 2. **Jugador 2** escribe su nombre + ese código → pulsa **Unirse**.
 3. Cada jugador ve en su pantalla la crisis activa, la misión de la ronda y su mano de 6 cartas.
-4. Cada jugador toca una carta de su mano y luego la ranura de capa donde quiere colocarla — los móviles son independientes.
+4. El jugador toca una carta de su mano (queda resaltada) y luego toca el nodo del anillo correspondiente en el tablero circular para colocarla.
 5. Al completar la pila, pulsa **Enviar pila** → se abre un modal para escribir la justificación.
-6. Cuando los dos han enviado, ambas pilas se revelan simultáneamente en los dos dispositivos con la puntuación calculada.
+6. Cuando los dos han enviado, ambas pilas se revelan simultáneamente en los dos dispositivos con la puntuación calculada capa a capa.
 7. Jugador 1 pulsa **Siguiente ronda** para avanzar.
 8. Tras 6 rondas aparece el marcador final.
 
 ### Despliegue
 
 Para replicarlo en otro servidor, copia `stack_wars_ep1.html` a cualquier hosting estático — no requiere backend propio, toda la sincronización va a través de Firebase.
+
+---
+
+## El tablero circular — diseño inspirado en SMART10
+
+El tablero digital está inspirado en la plantilla física del juego **SMART10** (SD Games), que organiza los componentes alrededor de un círculo central con nodos satélite distribuidos en anillos. En Stack Wars Episodio I esta geometría se adapta al modelo OSI:
+
+- **Centro** → L2 (Enlace): la capa física, el núcleo de la red
+- **Primer anillo** (r = 72 px) → L3 (Red): encaminamiento y direccionamiento
+- **Segundo anillo** (r = 112 px) → L4 (Transporte): control de flujo y fiabilidad
+- **Anillo exterior** (r = 148 px) → L7 (Aplicación): protocolos de usuario
+
+Solo aparecen los nodos de las capas exigidas por la misión activa. Los nodos vacíos pulsan suavemente indicando que se puede colocar una carta; los nodos ocupados muestran el nombre del protocolo y sus atributos de puntuación con un halo del color de su capa.
 
 ---
 
@@ -161,7 +179,7 @@ Reglas de calibración para nuevas cartas de crisis:
 - Las crisis duras (que descalifican cartas) deben dejar al menos 2 opciones válidas por capa.
 - Las crisis de penalización (−pts) son más suaves y admiten más estrategias.
 
-Para cambiar el dominio temático (de protocolos de red a otro campo), adapta los nombres de las capas y los atributos al nuevo contexto manteniendo la mecánica de construcción de pila con misión + crisis.
+Para cambiar el dominio temático (de protocolos de red a otro campo), adapta los nombres de las capas y los atributos al nuevo contexto manteniendo la mecánica de construcción de pila con misión + crisis y el tablero circular con el número de anillos que corresponda.
 
 ---
 
@@ -170,6 +188,7 @@ Para cambiar el dominio temático (de protocolos de red a otro campo), adapta lo
 | Elemento | Stack Wars (original) | Stack Wars Episodio I |
 |---|---|---|
 | Mecánica base | Top Trumps — comparación de atributos | Construcción de pila por capas OSI |
+| Tablero | Sin tablero — cartas en la mano | Circular SVG — anillos concéntricos por capa |
 | Decisión clave | ¿Qué atributo elige el jugador activo? | ¿Qué protocolo encaja en cada capa para esta misión? |
 | Restricción dinámica | Ninguna | Carta de crisis por ronda |
 | Justificación | Variante opcional | Obligatoria (invalida la pila si falta) |
@@ -189,6 +208,7 @@ Los dos juegos son complementarios y pueden jugarse en la misma sesión: el Epis
 | Titulación | Máster en Ingeniería de Telecomunicación |
 | Marco pedagógico | Aprendizaje Basado en Juegos (ABJ) |
 | Mecánica base | Construcción de pila + deducción colaborativa |
+| Tablero | Circular SVG inspirado en SMART10 |
 | Jugadores | 2 (versión digital) · 2–4 (versión física) |
 | Duración | 25–35 min por partida |
 
