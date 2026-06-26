@@ -190,23 +190,6 @@ Para cambiar el dominio temático (de protocolos de red a otro campo), adapta lo
 
 ---
 
-## Relación con el Episodio original
-
-| Elemento | Stack Wars (original) | Stack Wars Episodio I |
-|---|---|---|
-| Mecánica base | Top Trumps — comparación de atributos | Construcción de pila por capas OSI |
-| Tablero | Sin tablero — cartas en la mano | Circular SVG — anillos concéntricos por capa |
-| Decisión clave | ¿Qué atributo elige el jugador activo? | ¿Qué protocolo encaja en cada capa para esta misión? |
-| Restricción dinámica | Ninguna | Carta de crisis por ronda |
-| Justificación | Variante opcional | Obligatoria (invalida la pila si falta) |
-| Rondas | 10 | 6 |
-| Cartas en mano | 10 (todo el mazo) | 6 (mano parcial aleatoria) |
-| Mazos adicionales | — | 15 misiones + 10 crisis |
-
-Los dos juegos son complementarios y pueden jugarse en la misma sesión: el Episodio original como introducción a los protocolos y sus atributos, y el Episodio I como aplicación a escenarios de diseño de red.
-
----
-
 ## Contexto académico
 
 | Campo | Valor |
@@ -215,7 +198,7 @@ Los dos juegos son complementarios y pueden jugarse en la misma sesión: el Epis
 | Titulación | Máster en Ingeniería de Telecomunicación |
 | Marco pedagógico | Aprendizaje Basado en Juegos (ABJ) |
 | Mecánica base | Construcción de pila + deducción colaborativa |
-| Tablero | Circular SVG inspirado en SMART10 |
+| Tablero | Circular inspirado en SMART10 |
 | Jugadores | 2 (versión digital) · 2–4 (versión física) |
 | Duración | 25–35 min por partida (incluyendo preparación y debate) |
 
