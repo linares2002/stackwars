@@ -69,10 +69,14 @@ Si round >= totalRounds → status='finished'
 
 ## MECÁNICA DE JUEGO
 
+### Formato de jugadores
+El juego digital enfrenta a **2 jugadores individuales** (1 vs 1). En la versión física puede jugarse con 2–4 jugadores individuales o en 2 equipos de 2 (óptimo para el aula). Toda la lógica de Firebase y puntuación asume participantes individuales; la modalidad de equipos se gestiona offline.
+
 ### Construcción de pila
 - Cada jugador recibe 6 cartas de protocolo al inicio (mano aleatoria del mazo de 20)
 - La misión activa indica qué capas OSI son obligatorias y qué atributos mínimos se requieren
 - El jugador coloca una carta por nodo del tablero circular, seleccionando primero la carta de su mano y luego tocando el nodo de la capa correcta
+- **Excepción M10**: esta misión activa dos ranuras en L7 (envío + acceso); el jugador debe colocar una carta distinta en cada ranura
 - Las cartas que violan la crisis activa se atenúan y no pueden colocarse
 - El jugador tiene 60 segundos (honor system) para construir y justificar su pila
 
@@ -90,7 +94,7 @@ Empate → nadie puntúa, ambos roban 1 carta.
 ### Penalizaciones de crisis
 | Crisis | Penalización |
 |---|---|
-| C01 UDP bloqueado | L4 con Overhead bajo = 10 descalificada |
+| C01 UDP bloqueado | L4 con Overhead bajo ≥ 9 sin conexión descalificada (UDP #02, TFTP #19) |
 | C02 Ataque DDoS | L7 con Seguridad < 7 descalificada |
 | C03 Fallo enlace troncal | L3 con Fiabilidad < 8 descalificada |
 | C04 Ancho de banda 10% | Cada carta con Overhead bajo < 6 → −3 pts |
@@ -101,8 +105,10 @@ Empate → nadie puntúa, ambos roban 1 carta.
 | C09 Filtración de datos | Cada carta con Seguridad ≤ 3 descalificada |
 | C10 Congestión en núcleo | L3/L4 con Overhead bajo < 7 → −4 pts |
 
+> **Nota C01**: UDP (#02, OVH=10) y TFTP (#19, OVH=10) quedan descalificados. RTP (#18, OVH=7) **no** queda descalificado por este criterio; su uso en L4 es válido bajo C01.
+
 ### Violaciones duras vs. penalizaciones suaves
-- **Duras** (C01, C02, C03, C05, C06, C08, C09): la carta queda descalificada, esa capa no puntúa. Si hay muchas violaciones, la puntuación total se reduce al 60%.
+- **Duras** (C01, C02, C03, C05, C06, C08, C09): la carta queda descalificada, esa capa no puntúa. Si hay múltiples violaciones, la puntuación total se multiplica por 0.6 (reducción del 40%).
 - **Suaves** (C04, C10): la carta sigue siendo válida pero acumula una penalización de puntos sobre el total.
 - **Especial** (C07): bloquea físicamente la ranura L2. Las misiones que la exigen se resuelven sin ella (penalización fija −5 pts sobre el total).
 
@@ -192,8 +198,9 @@ Si `forced` tiene valor (ID de carta), solo esa carta satisface el requisito ind
 - Puntuación: Velocidad + Overhead bajo de la pila
 
 **M10 — Correo empresarial cifrado** (Avanzada)
-- L7: Fiabilidad ≥ 7 | L4: Fiabilidad ≥ 8 | L3: cualquier protocolo
+- L7a (envío): Fiabilidad ≥ 7 — p. ej. SMTP (#11) | L7b (acceso): protocolo de acceso con sincronización — IMAP recomendado (#20) | L4: Fiabilidad ≥ 8
 - Puntuación: Seguridad + Fiabilidad de la pila
+- **Nota de implementación**: esta es la única misión con doble ranura en L7. El tablero activa dos nodos en el anillo exterior. El jugador debe colocar dos cartas distintas de L7 en las ranuras L7a y L7b respectivamente.
 
 **M11 — Sincronización de relojes financiera** (Avanzada)
 - L7: NTP obligatorio (#16) | L4: Overhead bajo ≥ 8 | L3: Adopción ≥ 8
@@ -204,8 +211,9 @@ Si `forced` tiene valor (ID de carta), solo esa carta satisface el requisito ind
 - Puntuación: Fiabilidad + Adopción de la pila
 
 **M13 — Streaming de audio en directo** (Avanzada)
-- L7: Velocidad ≥ 8 | L4: RTP obligatorio (#18) | L3: Adopción ≥ 7
+- L7: SIP obligatorio (#17, señalización de sesión) | L4: RTP obligatorio (#18) | L3: Adopción ≥ 7
 - Puntuación: Velocidad + Overhead bajo de la pila
+- **Nota**: SIP gestiona la señalización en L7; RTP transporta el flujo de audio en L4. Cada protocolo ocupa su capa propia.
 
 **M14 — Asignación dinámica de IPs** (Básica)
 - L7: DHCP obligatorio (#10) | L4: cualquier protocolo | L2: ARP obligatorio (#09)
@@ -221,7 +229,7 @@ Si `forced` tiene valor (ID de carta), solo esa carta satisface el requisito ind
 
 **C01 — UDP bloqueado en el firewall**
 Seguridad aplica regla que bloquea todo el tráfico UDP esta ronda.
-→ L4 no puede usar carta con Overhead bajo = 10. UDP (#02), RTP (#18) y TFTP (#19) descalificados.
+→ L4 no puede usar carta sin conexión con Overhead bajo ≥ 9: UDP (#02) y TFTP (#19) descalificados. RTP (#18, OVH=7) no queda descalificado por este criterio.
 
 **C02 — Ataque DDoS en curso**
 La red sufre un ataque de denegación de servicio.
@@ -290,7 +298,8 @@ El tablero central es un SVG de 320×320 px que representa el modelo OSI como **
 **Estados de nodo:**
 - **Vacío interactivo**: borde punteado + símbolo `+` + animación de pulso suave — toca para colocar la carta seleccionada
 - **Ocupado**: fondo de color de la capa + nombre del protocolo + atributos de puntuación + halo de brillo animado
-- **Bloqueado** (crisis C07 en L2): borde rojo oscuro + candado `🔒`
+- **Bloqueado** (crisis C07 en L2): borde rojo oscuro + candado 🔒
+- **Doble ranura L7** (misión M10): dos nodos en el anillo exterior, etiquetados L7a y L7b
 
 **Interacción en dos pasos:**
 1. El jugador toca una carta de su mano → queda resaltada (borde azul)
@@ -314,9 +323,9 @@ Al ejecutar este prompt, genera en este orden:
 2. Este prompt como `stack_wars_ep1_prompt.md`
 3. El `README.md` con el estilo del Episodio original
 
-Si el usuario pide ampliar el mazo de misiones, mantén la misma estructura de `reqs` y `scoreAttrs`. Calibra los requisitos mínimos siendo fiel a los valores reales de los protocolos: si exiges Seguridad ≥ 9 en L7, solo HTTPS (#04) y SFTP (#14) lo cumplen.
+Si el usuario pide ampliar el mazo de misiones, mantén la misma estructura de `reqs` y `scoreAttrs`. Calibra los requisitos mínimos siendo fiel a los valores reales de los protocolos: si exiges Seguridad ≥ 9 en L7, solo HTTPS (#04) y SFTP (#14) lo cumplen. Si diseñas una misión con doble ranura en L7 (al estilo de M10), indícalo explícitamente en los `reqs` con `"slot": "7a"` y `"slot": "7b"`.
 
-Si el usuario pide nuevas cartas de crisis, respeta el balance entre crisis duras (descalifican) y suaves (penalizan). No añadas crisis que hagan imposible resolver más de 3 misiones simultáneamente.
+Si el usuario pide nuevas cartas de crisis, respeta el balance entre crisis duras (descalifican) y suaves (penalizan). No añadas crisis que hagan imposible resolver más de 3 misiones simultáneamente. Para crisis que descalifican protocolos en L4 por protocolo sin conexión, usa el criterio combinado Overhead bajo + ausencia de handshake, no solo el valor de Overhead bajo.
 
 Si el usuario quiere cambiar el tema de la asignatura, adapta los nombres de las capas, los protocolos y los escenarios de misión al nuevo dominio, manteniendo la mecánica de construcción de pila con 3–4 ranuras y el sistema de crisis.
 
@@ -333,8 +342,21 @@ Al seleccionar carta o colocarla en un nodo, no se hace `get()` a Firebase — s
 ### Tablero circular — función renderStackSlots
 Genera un SVG de 320×320 px con nodos circulares por capa. Los radios de anillo son fijos: L2=0 (centro), L3=72, L4=112, L7=148. Los nodos vacíos tienen `onclick="placeCard(layer)"` inline en el SVG — requiere que `placeCard` esté expuesta como `window.placeCard`. Los nodos pulsantes usan `@keyframes slot-pulse` en CSS.
 
+Para M10, el anillo L7 genera dos nodos separados angularmente: `placeCard('7a')` y `placeCard('7b')`. La validación de pila completa comprueba que `S.myStack['7a']` y `S.myStack['7b']` estén ambos rellenos antes de habilitar el botón de envío.
+
 ### Penalización por violaciones de crisis duras
 Si la pila contiene cartas que violan una crisis dura (C01, C02, C03, C05, C06, C08, C09), la puntuación total se multiplica por 0.6 (reducción del 40%) en lugar de invalidar carta a carta. Esto permite pilas parcialmente válidas pero penalizadas.
+
+### Validación de C01
+```js
+function violatesC01(card) {
+  // Solo descalifica protocolos sin conexión con OVH >= 9
+  // UDP (#02): OVH=10 → descalificado
+  // TFTP (#19): OVH=10 → descalificado
+  // RTP (#18): OVH=7 → NO descalificado
+  return card.layer === 4 && card.overhead >= 9 && card.reliability < 5;
+}
+```
 
 ---
 
@@ -350,7 +372,7 @@ Si la pila contiene cartas que violan una crisis dura (C01, C02, C03, C05, C06, 
 | Mecánica complementaria | Carta de crisis por ronda (restricción dinámica) |
 | Tablero | Circular SVG — capas OSI como anillos concéntricos (inspirado en SMART10) |
 | Jugadores | 2 (versión digital) · 2–4 (versión física) |
-| Duración estimada | 25–35 minutos por partida |
+| Duración estimada | 25–35 minutos por partida (incluyendo preparación y debate) |
 | Nivel educativo | Máster universitario |
 | Objetivo pedagógico principal | Razonamiento sobre selección de protocolos por capa y trade-offs ante restricciones de red |
 | URL de acceso | https://edurag.org/sw |

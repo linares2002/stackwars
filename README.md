@@ -45,13 +45,11 @@ El momento de aprendizaje clave es la **justificación oral de la pila**: antes 
 ## Contenido del repositorio
 
 ```
-stackwars/
-├── index.html        # Juego multijugador en tiempo real (Firebase)
+stack-wars-ep1/
+├── stack_wars_ep1.html        # Juego multijugador en tiempo real (Firebase)
 ├── stack_wars_ep1_prompt.md   # Prompt completo para regenerar o ampliar el juego con IA
 ├── qr_sw.png                  # Código QR — https://edurag.org/sw
-├── cartas/                    # Cartas del juego
 └── README.md
-
 ```
 
 ---
@@ -64,7 +62,7 @@ stackwars/
 - 15 cartas de misión
 - 10 cartas de crisis
 - Tablero circular con nodos de capa (L2 / L3 / L4 / L7)
-- Marcador de rondas
+- Marcador de rondas (1–6)
 
 ### El tablero circular
 
@@ -74,8 +72,9 @@ El tablero representa el modelo OSI como **anillos concéntricos**: L2 en el cen
 
 1. Barajar por separado los tres mazos: protocolos, misiones y crisis.
 2. Repartir 6 cartas de protocolo a cada jugador (mano oculta).
-3. Colocar 1 carta de misión boca arriba en el centro de la mesa.
+3. Colocar **1 carta de misión** boca arriba en el centro de la mesa.
 4. Revelar 1 carta de crisis que afectará a toda la ronda.
+5. Decidir quién empieza: el jugador que nombre más protocolos en 10 segundos.
 
 ### Reglas básicas
 
@@ -84,14 +83,18 @@ El tablero representa el modelo OSI como **anillos concéntricos**: L2 en el cen
 3. Antes de revelar, el jugador **justifica en voz alta** por qué cada protocolo elegido cumple la misión y supera la restricción de crisis. Sin justificación = pierde la ronda.
 4. Ambos jugadores revelan su pila simultáneamente.
 5. Se calcula la puntuación de cada pila (suma de atributos relevantes indicados en la misión, menos penalizaciones de crisis).
-6. Gana la ronda quien tenga mayor puntuación. En caso de empate, nadie puntúa.
+6. Gana la ronda quien tenga mayor puntuación. En caso de empate, nadie puntúa y ambos roban 1 carta.
 7. El ganador de la ronda roba 2 cartas nuevas; el perdedor roba 1.
 
 > Las cartas que violan la crisis quedan descalificadas o penalizadas. Una pila técnicamente perfecta puede perder si ignora la restricción activa.
 
+### Nota sobre la misión M10 (Correo empresarial cifrado)
+
+Esta misión es la única que exige **dos protocolos distintos en Capa 7**: uno de envío (p. ej. SMTP) y otro de acceso con sincronización (p. ej. IMAP). El tablero activa dos ranuras en L7 para esta misión. La puntuación se calcula sobre ambas cartas de forma independiente.
+
 ### Fin de la partida
 
-La partida termina al completar 6 rondas o cuando un equipo consiga 4 victorias. Gana quien haya resuelto más misiones. En caso de empate, se juega una ronda extra con la misión de mayor dificultad disponible.
+La partida termina al completar 6 rondas o cuando un jugador consiga 4 victorias. Gana quien haya resuelto más misiones. En caso de empate, se juega una ronda extra con la misión de mayor dificultad disponible.
 
 ### Variantes para el aula
 
@@ -175,11 +178,13 @@ Reglas de calibración para nuevas cartas de misión:
 - Un protocolo sin cifrado nativo nunca debe satisfacer un requisito de Seguridad ≥ 7.
 - Los requisitos de capa deben reflejar el modelo OSI real: no se puede exigir TCP en L7.
 - Las misiones básicas deben resolverse con cualquier combinación razonable; las avanzadas deben tener al menos un protocolo obligatorio (`forced`).
+- La misión M10 es la única con doble ranura en L7; cualquier misión nueva con este patrón debe indicarlo explícitamente.
 
 Reglas de calibración para nuevas cartas de crisis:
-- Una crisis no debe hacer imposible resolver todas las misiones del mazo.
+- Una crisis no debe hacer imposible resolver más de 3 misiones del mazo simultáneamente.
 - Las crisis duras (que descalifican cartas) deben dejar al menos 2 opciones válidas por capa.
 - Las crisis de penalización (−pts) son más suaves y admiten más estrategias.
+- C01 descalifica en L4 los protocolos sin conexión con Overhead bajo ≥ 9: UDP (#02) y TFTP (#19). RTP (#18) tiene Overhead bajo = 7 y no queda descalificado por este criterio; su exclusión debe justificarse por ser un protocolo basado en UDP si se desea incluirlo.
 
 Para cambiar el dominio temático (de protocolos de red a otro campo), adapta los nombres de las capas y los atributos al nuevo contexto manteniendo la mecánica de construcción de pila con misión + crisis y el tablero circular con el número de anillos que corresponda.
 
@@ -212,7 +217,7 @@ Los dos juegos son complementarios y pueden jugarse en la misma sesión: el Epis
 | Mecánica base | Construcción de pila + deducción colaborativa |
 | Tablero | Circular SVG inspirado en SMART10 |
 | Jugadores | 2 (versión digital) · 2–4 (versión física) |
-| Duración | 25–35 min por partida |
+| Duración | 25–35 min por partida (incluyendo preparación y debate) |
 
 ---
 
