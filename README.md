@@ -1,4 +1,4 @@
-# Stack Wars — Episodio I: La amenaza en la red
+# Stack Wars Episodio I: La amenaza en la red
 
 Juego de mesa educativo para la asignatura de **Redes basadas en IP** (Máster en Ingeniería de Telecomunicación). Disponible en dos formatos: mazo físico imprimible y partida multijugador en tiempo real desde el móvil.
 
