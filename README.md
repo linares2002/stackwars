@@ -170,9 +170,9 @@ Solo aparecen los nodos de las capas exigidas por la misión activa. Los nodos v
 
 ---
 
-## Ampliar el juego con IA
+## Ampliar el juego
 
-El archivo `stack_wars_ep1_prompt.md` contiene el prompt completo para regenerar o ampliar el juego usando Claude (u otro LLM). Al ejecutarlo se obtiene el código del juego web, las cartas de misión y crisis, y el diseño visual de los componentes.
+El archivo `stack_wars_ep1_prompt.md` contiene el prompt completo para regenerar o ampliar el juego. Al ejecutarlo se obtiene el código del juego web, las cartas de misión y crisis, y el diseño visual de los componentes.
 
 Reglas de calibración para nuevas cartas de misión:
 - Un protocolo sin cifrado nativo nunca debe satisfacer un requisito de Seguridad ≥ 7.
