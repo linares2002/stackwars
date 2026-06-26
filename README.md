@@ -46,7 +46,7 @@ El momento de aprendizaje clave es la **justificación oral de la pila**: antes 
 
 ```
 stack-wars-ep1/
-├── stack_wars_ep1.html        # Juego multijugador en tiempo real (Firebase)
+├── index.html        # Juego multijugador en tiempo real (Firebase)
 ├── stack_wars_ep1_prompt.md   # Prompt completo para regenerar o ampliar el juego con IA
 ├── qr_sw.png                  # Código QR — https://edurag.org/sw
 └── README.md
