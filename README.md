@@ -46,7 +46,7 @@ El momento de aprendizaje clave es la **justificación oral de la pila**: antes 
 
 ```
 stack-wars-ep1/
-├── index.html        # Juego multijugador en tiempo real (Firebase)
+├── index.html                 # Juego multijugador en tiempo real (Firebase)
 ├── stack_wars_ep1_prompt.md   # Prompt completo para regenerar o ampliar el juego con IA
 ├── qr_sw.png                  # Código QR — https://edurag.org/sw
 └── README.md
@@ -107,7 +107,7 @@ La partida termina al completar 6 rondas o cuando un jugador consiga 4 victorias
 
 ## Versión digital multijugador (móvil)
 
-`stack_wars_ep1.html` es un juego web que funciona en el navegador del móvil sin instalar nada. Dos jugadores se conectan en tiempo real a través de Firebase Realtime Database. Comparte la misma infraestructura Firebase que el Episodio original, usando el nodo `ep1rooms/` para que ambos juegos coexistan sin interferirse.
+`index.html` es un juego web que funciona en el navegador del móvil sin instalar nada. Dos jugadores se conectan en tiempo real a través de Firebase Realtime Database. Comparte la misma infraestructura Firebase que el Episodio original, usando el nodo `ep1rooms/` para que ambos juegos coexistan sin interferirse.
 
 ### Requisitos
 
@@ -116,7 +116,7 @@ La partida termina al completar 6 rondas o cuando un jugador consiga 4 victorias
 
 ### Configuración de Firebase
 
-Pega el mismo bloque `firebaseConfig` de Stack Wars en `stack_wars_ep1.html` (líneas ~230-238):
+Pega el mismo bloque `firebaseConfig` de Stack Wars en `index.html` (líneas ~230-238):
 
 ```js
 const firebaseConfig = {
@@ -153,7 +153,7 @@ Los alumnos solo necesitan escanear el QR o abrir la URL en el navegador de su m
 
 ### Despliegue
 
-Para replicarlo en otro servidor, copia `stack_wars_ep1.html` a cualquier hosting estático — no requiere backend propio, toda la sincronización va a través de Firebase.
+Para replicarlo en otro servidor, copia `index.html` a cualquier hosting estático — no requiere backend propio, toda la sincronización va a través de Firebase.
 
 ---
 
