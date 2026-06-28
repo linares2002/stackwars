@@ -58,7 +58,7 @@ stack-wars-ep1/
 
 ### Componentes
 
-- 20 cartas de protocolo (reutilizadas del Episodio original)
+- 20 cartas de protocolo
 - 15 cartas de misión
 - 10 cartas de crisis
 - Tablero circular con nodos de capa (L2 / L3 / L4 / L7)
