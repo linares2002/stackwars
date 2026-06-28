@@ -20,7 +20,7 @@ Los cinco atributos de cada carta son:
 | **Seguridad** | Cifrado, autenticación e integridad nativos. |
 | **Adopción** | Grado de uso real en Internet hoy. |
 
-El mazo comparte las mismas **20 cartas de protocolo** del Episodio original:
+El mazo tiene **20 cartas de protocolo**:
 
 | Capa | Protocolos | Color |
 |---|---|---|
